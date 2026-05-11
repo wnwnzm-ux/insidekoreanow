@@ -18,6 +18,32 @@ if (!xmlName) {
 
 const CATEGORY_ORDER = ["k-culture", "k-food", "living-in-korea", "travel"];
 
+const CATEGORY_OVERRIDES = {
+  "olive-young-must-haves-2025-k-beauty-souvenirs": "k-culture",
+  "cost-of-living-seoul-vs-busan-2025-data": "living",
+  "korean-convenience-store-foods-2025": "k-food",
+  "top-7-must-try-korean-street-foods-in-seoul": "k-food",
+  "how-to-make-authentic-korean-kimbap-step-by-step-2": "k-food",
+  "five-types-of-korean-kimbap-2025": "k-food",
+  "how-to-make-authentic-korean-kimbap-step-by-step": "k-food",
+  "jeju-cutlassfish-best-restaurants-2025": "k-food",
+  "korean-convenience-store-snacks-2025": "k-food",
+  "where-kidols-shop-and-cafes-seoul-2025": "k-culture",
+  "netflix-korea-2026-upcoming-kdramas": "k-culture",
+  "netflix-kdramas-late-2025-lineup": "k-culture",
+  "netflix-korea-2025-2026-kdrama-lineup": "k-culture",
+  "where-to-take-kpop-dance-classes-seoul": "k-culture",
+  "kpop-cafes-theme-stores-hongdae-myeongdong-2025": "k-culture",
+  "filming-locations-of-your-favorite-k-dramas-you-can-actually-visit": "k-culture",
+  "kpop-landmarks-in-seoul-2025": "k-culture",
+  "how-to-get-sim-card-in-korea-2025": "living",
+  "traditional-korean-dishes-you-should-try-once-in-your-life": "k-food",
+  "escape-room-culture-in-seoul-2025": "k-culture",
+  "best-korean-bbq-restaurants-in-seoul": "k-food",
+  "hongdae-street-food-guide-seoul": "k-food",
+  "kpop-demon-hunters-everland-2025": "k-culture",
+};
+
 /** @returns {"k-culture"|"k-food"|"living"|"travel"|"uncategorized"} */
 function mapWpCategoryNicenames(nicenames) {
   const set = new Set(nicenames);
@@ -109,7 +135,7 @@ for (const item of items) {
   const excerpt = stripTags(excerptRaw) || stripTags(contentHtml).slice(0, 220) + (stripTags(contentHtml).length > 220 ? "…" : "");
 
   const catNices = collectCategoryNicenames(item.category);
-  const category = mapWpCategoryNicenames(catNices);
+  const category = CATEGORY_OVERRIDES[uniqueSlug] ?? mapWpCategoryNicenames(catNices);
 
   posts.push({
     id: uniqueSlug,
