@@ -24,3 +24,85 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* WordPress / Gutenberg HTML inside blog articles */
+.entry-content .wp-block-image,
+.entry-content figure {
+  margin: 1.5rem 0;
+}
+
+.entry-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+}
+
+.entry-content h1,
+.entry-content h2,
+.entry-content h3,
+.entry-content h4 {
+  color: #0f172a;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.25;
+}
+
+.entry-content h2 {
+  font-size: 1.375rem;
+}
+
+.entry-content h3 {
+  font-size: 1.125rem;
+}
+
+.entry-content p {
+  margin: 0 0 1rem;
+}
+
+.entry-content ul,
+.entry-content ol {
+  margin: 0 0 1rem 1.25rem;
+  padding-left: 0.25rem;
+}
+
+.entry-content li {
+  margin: 0.25rem 0;
+}
+
+.entry-content a {
+  color: #0f766e;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.entry-content a:hover {
+  color: #115e59;
+}
+
+.entry-content blockquote {
+  margin: 1rem 0;
+  padding-left: 1rem;
+  border-left: 4px solid #e2e8f0;
+  color: #64748b;
+}
+
+.entry-content hr {
+  margin: 2rem 0;
+  border: 0;
+  border-top: 1px solid #e2e8f0;
+}
+
+.entry-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+
+.entry-content th,
+.entry-content td {
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}

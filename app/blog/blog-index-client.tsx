@@ -8,6 +8,7 @@ import {
   filterBlogPosts,
   getCategoryLabel,
 } from "@/lib/blog-posts";
+import { decodeHtmlEntities } from "@/lib/html";
 
 export function BlogIndexClient() {
   const [active, setActive] = useState<BlogFilterId>("all");
@@ -81,10 +82,12 @@ export function BlogIndexClient() {
                     </div>
                     <h2 className="mt-3 text-lg font-semibold leading-snug text-slate-900">
                       <Link href={`/blog/${post.id}`} className="hover:text-teal-800">
-                        {post.title}
+                        {decodeHtmlEntities(post.title)}
                       </Link>
                     </h2>
-                    <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600">{post.excerpt}</p>
+                    <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600">
+                      {decodeHtmlEntities(post.excerpt)}
+                    </p>
                     <Link
                       href={`/blog/${post.id}`}
                       className="mt-4 inline-flex text-sm font-semibold text-teal-800 hover:text-teal-900"
