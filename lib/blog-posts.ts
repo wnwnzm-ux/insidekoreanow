@@ -12,6 +12,7 @@ export interface BlogPost {
   dateIso: string;
   readTime: string;
   gradient: string;
+  thumbnailUrl?: string;
   category: BlogCategorySlug;
   /** WordPress HTML body (trusted site export). */
   contentHtml: string;

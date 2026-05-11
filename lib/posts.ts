@@ -4,7 +4,7 @@
  */
 import type { BlogPost } from "./blog-posts";
 
-export const WP_POSTS: BlogPost[] = [
+const RAW_WP_POSTS: Omit<BlogPost, "thumbnailUrl">[] = [
   {
     "id": "best-hanok-hotels-seoul-2026",
     "title": "Best Hanok Hotels in Seoul 2026: Top Stays to Book",
@@ -611,3 +611,40 @@ export const WP_POSTS: BlogPost[] = [
     "contentHtml": "<p><!-- ===========================\n     MAIN ARTICLE CONTENT\n=========================== --></p>\n<h1>4-Day Jeju Island Guide for First-Time Travelers (Where to Stay &amp; Eat)</h1>\n<p>Jeju Island is often described as Korea’s “Hawaii” — a stunning blend of volcanic landscapes, sea-side cafés, and local cuisine. This 4-day guide shows you where to stay, what to eat, and how to experience Jeju like a local.</p>\n<hr>\n<h2>Where to Stay</h2>\n<p><strong>Jeju City (North):</strong> Ideal for arrivals and first-time travelers. Easy access to Dongmun Market and Black Pork Street.</p>\n<p><strong>Seogwipo (South):</strong> Perfect for slower travel — waterfalls, cliffs, and scenic drives await.</p>\n<p><strong>Aewol &amp; Seongsan:</strong> Great for café lovers and ocean views, especially if you rent a car.</p>\n<ul>\n<li>Short trips (1–2 days): Stay in Jeju City for convenience.</li>\n<li>Longer stays (3+ days): Split between Jeju City and Seogwipo.</li>\n<li>Using public transport: Stay near Jeju City center or bus terminals.</li>\n</ul>\n<hr>\n<h2>Where to Eat</h2>\n<p>Jeju’s local cuisine is one of the best parts of the island experience. Don’t leave without trying these:</p>\n<ul>\n<li><strong>Jeju Black Pork BBQ:</strong> Visit <em>Donsadon</em> or <em>Hwaro Hyang</em> along Black Pork Street in Jeju City.</li>\n<li><strong>Seafood:</strong> Try <em>Gogi Guksu</em> (pork noodle soup) or <em>Galchi-jorim</em> (braised beltfish) in Seogwipo.</li>\n<li><strong>Cafés:</strong> <em>Bomnal Café</em> and <em>Paul &amp; Mary</em> in Aewol offer amazing ocean views and desserts.</li>\n<li><strong>Markets:</strong> <em>Dongmun Traditional Market</em> in Jeju City for snacks and souvenirs.</li>\n</ul>\n<p><strong>Food Tips:</strong> Have one meal for BBQ, one for seafood, and spend an afternoon in a scenic café. Bring a translation app for easy ordering!</p>\n<hr>\n<h2>4-Day Itinerary</h2>\n<h3>Day 1 – Arrival &amp; North Jeju</h3>\n<p>Arrive at Jeju Airport → Check-in at a Jeju City hotel → Explore Tapdong Plaza and Chilsung-ro → Lunch at Black Pork Street → Sunset at Hamdeok Beach → Night stroll through Dongmun Market.</p>\n<h3>Day 2 – East Jeju: Volcanic Landscapes</h3>\n<p>Sunrise at <em>Seongsan Ilchulbong</em> → Brunch near Sehwa Beach → Explore <em>Manjanggul Cave</em> → Dinner in Seogwipo at a local seafood spot.</p>\n<h3>Day 3 – South &amp; West Jeju: Nature &amp; Café Culture</h3>\n<p>Morning hike at <em>Hallasan Mountain</em> or visit <em>Hyeopjae Beach</em> → Lunch in Aewol café strip → Visit <em>O’Sulloc Tea Museum</em> → Sunset dinner at west coast seafood restaurant.</p>\n<h3>Day 4 – Relax &amp; Departure</h3>\n<p>Café-hopping morning → Brunch and souvenir shopping (hallabong oranges, Jeju chocolates) → Return to Jeju City → Farewell meal → Fly out from Jeju Airport.</p>\n<hr>\n<h2>Traveler Tips</h2>\n<ul>\n<li>Rent a car if possible for full freedom.</li>\n<li>Book accommodation near café streets for photos and convenience.</li>\n<li>Include at least one “local experience” like a market visit or temple stay.</li>\n<li>Save this post for your Jeju trip!</li>\n</ul>\n<hr>\n<h2>FAQ</h2>\n<p><strong>Do I need a car to explore Jeju?</strong><br />\nPublic transport works, but a rental car gives freedom to visit hidden spots easily.</p>\n<p><strong>What food should I try in Jeju?</strong><br />\nJeju Black Pork BBQ and fresh seafood are essentials — try Donsadon or Seogwipo’s coastal restaurants.</p>\n<p><strong>Where’s the best place to stay?</strong><br />\nJeju City for convenience, Seogwipo for scenery, Aewol for ocean-view cafés.</p>\n<hr>\n<p><em>Written by Inside Korea — Your local guide to authentic Korean travel and life.</em></p>"
   }
 ];
+
+const FIRST_IMAGE_SRC_PATTERN = /<img\b[^>]*\bsrc\s*=\s*(?:"([^"]+)"|'([^']+)'|([^'"\s>]+))/i;
+
+function extractFirstImageUrl(contentHtml: string): string | undefined {
+  const match = contentHtml.match(FIRST_IMAGE_SRC_PATTERN);
+  const src = match?.[1] ?? match?.[2] ?? match?.[3];
+  return src ? decodeHtmlAttribute(src) : undefined;
+}
+
+function decodeHtmlAttribute(value: string): string {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'");
+}
+
+function categoryGradientForPost(category: BlogPost["category"]): string {
+  switch (category) {
+    case "k-culture":
+      return "from-purple-500/85 to-indigo-800/90";
+    case "k-food":
+      return "from-orange-500/85 to-rose-700/90";
+    case "living":
+      return "from-teal-500/85 to-emerald-800/90";
+    case "travel":
+      return "from-blue-500/85 to-sky-800/90";
+    case "uncategorized":
+      return "from-slate-500/85 to-slate-800/85";
+  }
+}
+
+export const WP_POSTS: BlogPost[] = RAW_WP_POSTS.map((post) => ({
+  ...post,
+  gradient: categoryGradientForPost(post.category),
+  thumbnailUrl: extractFirstImageUrl(post.contentHtml),
+}));

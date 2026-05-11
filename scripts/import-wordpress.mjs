@@ -132,10 +132,49 @@ const header = `/**
  */
 import type { BlogPost } from "./blog-posts";
 
-export const WP_POSTS: BlogPost[] = `;
+const RAW_WP_POSTS: Omit<BlogPost, "thumbnailUrl">[] = `;
 
 const body = JSON.stringify(posts, null, 2);
-const out = header + body + ";\n";
+const footer = `;
+
+const FIRST_IMAGE_SRC_PATTERN = /<img\\b[^>]*\\bsrc\\s*=\\s*(?:"([^"]+)"|'([^']+)'|([^'"\\s>]+))/i;
+
+function extractFirstImageUrl(contentHtml: string): string | undefined {
+  const match = contentHtml.match(FIRST_IMAGE_SRC_PATTERN);
+  const src = match?.[1] ?? match?.[2] ?? match?.[3];
+  return src ? decodeHtmlAttribute(src) : undefined;
+}
+
+function decodeHtmlAttribute(value: string): string {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'");
+}
+
+function categoryGradientForPost(category: BlogPost["category"]): string {
+  switch (category) {
+    case "k-culture":
+      return "from-purple-500/85 to-indigo-800/90";
+    case "k-food":
+      return "from-orange-500/85 to-rose-700/90";
+    case "living":
+      return "from-teal-500/85 to-emerald-800/90";
+    case "travel":
+      return "from-blue-500/85 to-sky-800/90";
+    case "uncategorized":
+      return "from-slate-500/85 to-slate-800/85";
+  }
+}
+
+export const WP_POSTS: BlogPost[] = RAW_WP_POSTS.map((post) => ({
+  ...post,
+  gradient: categoryGradientForPost(post.category),
+  thumbnailUrl: extractFirstImageUrl(post.contentHtml),
+}));
+`;
+const out = header + body + footer;
 writeFileSync(join(root, "lib", "posts.ts"), out, "utf8");
 console.log(`Wrote lib/posts.ts with ${posts.length} published posts from ${xmlName}`);
 
