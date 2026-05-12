@@ -1,0 +1,56 @@
+name: Scheduled blog posts
+
+on:
+  schedule:
+    - cron: '0 13 * * *'  # 미국 동부 오전 8시
+    - cron: '0 14 * * *'  # 미국 동부 오전 9시
+    - cron: '0 15 * * *'  # 미국 동부 오전 10시
+    - cron: '0 16 * * *'  # 미국 동부 오전 11시
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate:
+    name: Generate 1 post from keywords.csv
+    runs-on: ubuntu-latest
+
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL || 'claude-sonnet-4-6' }}
+      UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate 1 post from keywords.csv
+        run: node scripts/scheduled-posts.mjs
+
+      - name: Sync generated posts
+        run: npm run sync:posts
+
+      - name: Validate
+        run: |
+          npm run lint
+          npm run build
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: blog/scheduled-${{ github.run_id }}
+          delete-branch: true
+          commit-message: "Add scheduled blog post"
+          title: "Scheduled blog post"
