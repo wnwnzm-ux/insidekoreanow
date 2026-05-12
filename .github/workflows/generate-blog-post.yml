@@ -1,0 +1,113 @@
+name: Generate blog post
+
+on:
+  workflow_dispatch:
+    inputs:
+      keyword:
+        description: "SEO keyword or topic"
+        required: true
+        type: string
+      category:
+        description: "Category override"
+        required: true
+        default: "auto"
+        type: choice
+        options:
+          - auto
+          - k-culture
+          - k-food
+          - living
+          - travel
+          - uncategorized
+      status:
+        description: "Post status"
+        required: true
+        default: "published"
+        type: choice
+        options:
+          - published
+          - draft
+      no_images:
+        description: "Skip Unsplash image search"
+        required: true
+        default: false
+        type: boolean
+      force:
+        description: "Overwrite an existing post with the same slug"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate:
+    name: Generate post and open PR
+    runs-on: ubuntu-latest
+
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest' }}
+      UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate blog post
+        shell: bash
+        run: |
+          args=("${{ inputs.keyword }}" "--status" "${{ inputs.status }}")
+
+          if [[ "${{ inputs.category }}" != "auto" ]]; then
+            args+=("--category" "${{ inputs.category }}")
+          fi
+
+          if [[ "${{ inputs.no_images }}" == "true" ]]; then
+            args+=("--no-images")
+          fi
+
+          if [[ "${{ inputs.force }}" == "true" ]]; then
+            args+=("--force")
+          fi
+
+          node scripts/generate-post.mjs "${args[@]}"
+
+      - name: Sync generated posts
+        run: npm run sync:posts
+
+      - name: Validate generated site
+        run: |
+          npm run lint
+          npm run build
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: blog/auto-${{ github.run_id }}
+          delete-branch: true
+          commit-message: "Add generated blog post for ${{ inputs.keyword }}"
+          title: "Add blog post: ${{ inputs.keyword }}"
+          body: |
+            ## Summary
+            - Generated a new blog post from keyword: `${{ inputs.keyword }}`
+            - Category input: `${{ inputs.category }}`
+            - Status: `${{ inputs.status }}`
+            - Unsplash images skipped: `${{ inputs.no_images }}`
+
+            ## Validation
+            - `npm run sync:posts`
+            - `npm run lint`
+            - `npm run build`
