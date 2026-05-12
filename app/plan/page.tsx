@@ -1,9 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Plan a trip — InsideKoreaNow",
+  title: "Plan a trip",
   description: "Start planning your Korea itinerary with InsideKoreaNow.",
+  alternates: {
+    canonical: "/plan",
+  },
+  openGraph: {
+    type: "website",
+    url: "/plan",
+    title: `Plan a trip | ${SITE_NAME}`,
+    description: "Start planning your Korea itinerary with InsideKoreaNow.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `Plan a trip | ${SITE_NAME}`,
+    description: "Start planning your Korea itinerary with InsideKoreaNow.",
+  },
 };
 
 export default function PlanPage() {

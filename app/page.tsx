@@ -1,7 +1,28 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogCardThumbnail } from "@/app/components/BlogCardThumbnail";
 import { getFeaturedPosts } from "@/lib/blog-posts";
 import { decodeHtmlEntities } from "@/lib/html";
+import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
+
+export const metadata: Metadata = {
+  title: "Korea travel guides for international visitors",
+  description: SITE_DESCRIPTION,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    url: "/",
+    title: `${SITE_NAME} - Korea travel guides for international visitors`,
+    description: SITE_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} - Korea travel guides for international visitors`,
+    description: SITE_DESCRIPTION,
+  },
+};
 
 const categories = [
   {

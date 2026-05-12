@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BLOG_POSTS, getCategoryLabel } from "@/lib/blog-posts";
 import { decodeHtmlEntities } from "@/lib/html";
+import { SITE_NAME } from "@/lib/site";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -15,9 +16,33 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const post = BLOG_POSTS.find((p) => p.id === slug);
   if (!post) return { title: "Post — InsideKoreaNow" };
   const title = decodeHtmlEntities(post.title);
+  const description = decodeHtmlEntities(post.excerpt);
+  const url = `/blog/${post.id}`;
+  const images = post.thumbnailUrl ? [{ url: post.thumbnailUrl, alt: title }] : undefined;
+
   return {
-    title: `${title} — InsideKoreaNow`,
-    description: decodeHtmlEntities(post.excerpt),
+    title,
+    description,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      type: "article",
+      url,
+      siteName: SITE_NAME,
+      title,
+      description,
+      publishedTime: `${post.dateIso}T00:00:00.000Z`,
+      authors: [SITE_NAME],
+      tags: [getCategoryLabel(post.category)],
+      images,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: post.thumbnailUrl ? [post.thumbnailUrl] : undefined,
+    },
   };
 }
 
