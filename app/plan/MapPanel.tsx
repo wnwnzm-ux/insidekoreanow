@@ -82,8 +82,8 @@ function PlanMap({ dayItems }: { dayItems: PlanItem[] }) {
           title={item.place.name}
         >
           <Pin
-            background="#0f766e"
-            borderColor="#064e3b"
+            background="#ff4d4d"
+            borderColor="#cc0000"
             glyphColor="white"
             glyph={String(idx + 1)}
           />
