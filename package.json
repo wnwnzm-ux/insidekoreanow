@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "import:wp": "node scripts/import-wordpress.mjs"
+    "import:wp": "node scripts/import-wordpress.mjs",
+    "export:posts": "node scripts/export-posts-to-content.mjs",
+    "sync:posts": "node scripts/sync-posts.mjs",
+    "generate:post": "node scripts/generate-post.mjs",
+    "generate:batch": "node scripts/generate-batch.mjs"
   },
   "dependencies": {
     "next": "16.2.6",
