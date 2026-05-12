@@ -49,3 +49,13 @@ npm run sync:posts
 npm run lint
 npm run build
 ```
+
+## Analytics
+
+Google Analytics 4 is loaded only when this environment variable is set:
+
+```bash
+NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+```
+
+Set it in Vercel project environment variables for Production, Preview, and Development as needed.
