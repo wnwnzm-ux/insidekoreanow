@@ -19,7 +19,11 @@ if (!existsSync(contentDir)) {
 
 const posts = readContentPosts(contentDir)
   .filter((post) => post.status !== "draft")
-  .map(({ status: _status, ...post }) => post)
+  .map((post) => {
+    const publicPost = { ...post };
+    delete publicPost.status;
+    return publicPost;
+  })
   .sort((a, b) => (a.dateIso < b.dateIso ? 1 : -1));
 
 const header = `/**
