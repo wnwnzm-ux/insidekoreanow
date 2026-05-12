@@ -81,7 +81,7 @@ Required repository secrets:
 
 Optional repository variable:
 
-- `ANTHROPIC_MODEL` (defaults to `claude-3-5-sonnet-latest`)
+- `ANTHROPIC_MODEL` (defaults to `claude-sonnet-4-6`)
 
 ## Analytics
 
