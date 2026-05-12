@@ -125,6 +125,29 @@ async function generateWithAnthropic(keyword, category, apiKey) {
       model,
       max_tokens: 6000,
       temperature: 0.4,
+      tools: [
+        {
+          name: "create_blog_post",
+          description: "Return the generated blog post fields.",
+          input_schema: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              slug: { type: "string" },
+              excerpt: { type: "string" },
+              metaDescription: { type: "string" },
+              category: { type: "string" },
+              tags: {
+                type: "array",
+                items: { type: "string" },
+              },
+              bodyHtml: { type: "string" },
+            },
+            required: ["title", "slug", "excerpt", "metaDescription", "category", "tags", "bodyHtml"],
+          },
+        },
+      ],
+      tool_choice: { type: "tool", name: "create_blog_post" },
       messages: [
         {
           role: "user",
@@ -139,6 +162,9 @@ async function generateWithAnthropic(keyword, category, apiKey) {
   }
 
   const data = await res.json();
+  const toolUse = data.content?.find((part) => part.type === "tool_use" && part.name === "create_blog_post");
+  if (toolUse?.input) return toolUse.input;
+
   const text = data.content?.map((part) => part.text).join("\n") ?? "";
   return parseJsonResponse(text);
 }
@@ -149,7 +175,7 @@ function buildPrompt(keyword, category) {
 Keyword: ${keyword}
 Category slug: ${category}
 
-Return strict JSON only with:
+Use the create_blog_post tool with:
 {
   "title": "SEO title under 65 chars",
   "slug": "lowercase-url-slug",
@@ -162,11 +188,11 @@ Return strict JSON only with:
 
 Body requirements:
 - 1500 to 2000 words in natural English.
-- Helpful local-friend tone for first-time Korea visitors.
+- Helpful local Korean friend tone for first-time Korea visitors.
 - Use h2/h3 headings, paragraphs, lists, and a final FAQ section.
 - Include practical details, transportation tips, etiquette, prices when useful, and common mistakes.
 - Do not invent official opening hours or exact prices unless framed as approximate.
-- Do not include markdown fences. JSON only.`;
+- Do not include markdown fences.`;
 }
 
 function parseJsonResponse(text) {
