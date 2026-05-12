@@ -52,3 +52,6 @@ jobs:
           git add -A
           git commit -m "Add scheduled blog post" || exit 0
           git push
+
+      - name: Trigger Vercel deploy
+        run: curl -X POST "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}"
