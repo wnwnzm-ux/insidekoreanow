@@ -47,7 +47,7 @@ if (existsSync(filePath) && !options.force) {
   process.exit(1);
 }
 
-const images = options.noImages ? [] : await fetchUnsplashImages(keyword);
+const images = options.noImages ? [] : await fetchUnsplashImages(keyword, category);
 const contentHtml = insertImages(generated.bodyHtml, images);
 const thumbnailUrl = images[0]?.url;
 const dateIso = options.date || new Date().toISOString().slice(0, 10);
@@ -194,12 +194,36 @@ function buildStubPost(keyword, category) {
   };
 }
 
-async function fetchUnsplashImages(keyword) {
+async function fetchUnsplashImages(keyword, category) {
   const key = process.env.UNSPLASH_ACCESS_KEY;
   if (!key) return [];
 
+  const queries = buildImageQueries(keyword, category);
+  const seen = new Set();
+  const images = [];
+
+  for (const query of queries) {
+    const results = await searchUnsplash(query, key);
+    for (const photo of results) {
+      if (!photo.id || seen.has(photo.id)) continue;
+      seen.add(photo.id);
+      images.push({
+        id: photo.id,
+        url: `${photo.urls.raw}&w=800&q=80&auto=format&fit=crop`,
+        alt: photo.alt_description || query,
+        creditName: photo.user?.name,
+        creditUrl: photo.user?.links?.html,
+      });
+      if (images.length >= 3) return images;
+    }
+  }
+
+  return images;
+}
+
+async function searchUnsplash(query, key) {
   const url = new URL("https://api.unsplash.com/search/photos");
-  url.searchParams.set("query", `${keyword} Korea`);
+  url.searchParams.set("query", query);
   url.searchParams.set("per_page", "5");
   url.searchParams.set("orientation", "landscape");
   url.searchParams.set("client_id", key);
@@ -207,22 +231,24 @@ async function fetchUnsplashImages(keyword) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Unsplash request failed: ${res.status} ${await res.text()}`);
   const data = await res.json();
-  const seen = new Set();
+  return data.results || [];
+}
 
-  return (data.results || [])
-    .filter((photo) => {
-      if (!photo.id || seen.has(photo.id)) return false;
-      seen.add(photo.id);
-      return true;
-    })
-    .slice(0, 3)
-    .map((photo) => ({
-      id: photo.id,
-      url: `${photo.urls.raw}&w=800&q=80&auto=format&fit=crop`,
-      alt: photo.alt_description || keyword,
-      creditName: photo.user?.name,
-      creditUrl: photo.user?.links?.html,
-    }));
+function buildImageQueries(keyword, category) {
+  const categoryFallbacks = {
+    "k-culture": ["K-pop Seoul", "Seoul Hongdae street", "Korea culture"],
+    "k-food": ["Korean food Seoul", "Seoul street food", "Korea restaurant"],
+    living: ["Seoul street Korea", "Seoul transportation", "Korea city street"],
+    travel: ["Korea travel", "Seoul travel", "South Korea city"],
+    uncategorized: ["Korea travel", "Seoul city", "South Korea"],
+  };
+
+  return [
+    `${keyword} Korea`,
+    keyword,
+    ...(categoryFallbacks[category] || categoryFallbacks.uncategorized),
+    "Seoul street",
+  ];
 }
 
 function insertImages(bodyHtml, images) {
