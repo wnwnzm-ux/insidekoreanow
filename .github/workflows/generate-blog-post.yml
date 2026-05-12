@@ -83,20 +83,7 @@ jobs:
               echo "force=${{ inputs.force }}"
             } >> "$GITHUB_OUTPUT"
           else
-            node <<'NODE' >> "$GITHUB_OUTPUT"
-            const fs = require("node:fs");
-            const request = JSON.parse(fs.readFileSync(".github/blog-post-request.json", "utf8"));
-            const output = {
-              keyword: request.keyword,
-              category: request.category || "auto",
-              status: request.status || "published",
-              no_images: String(Boolean(request.noImages)),
-              force: String(Boolean(request.force)),
-            };
-            for (const [key, value] of Object.entries(output)) {
-              console.log(`${key}=${String(value).replace(/\n/g, " ")}`);
-            }
-            NODE
+            node -e 'const fs = require("node:fs"); const request = JSON.parse(fs.readFileSync(".github/blog-post-request.json", "utf8")); const output = { keyword: request.keyword, category: request.category || "auto", status: request.status || "published", no_images: String(Boolean(request.noImages)), force: String(Boolean(request.force)) }; for (const [key, value] of Object.entries(output)) console.log(`${key}=${String(value).replace(/\n/g, " ")}`);' >> "$GITHUB_OUTPUT"
           fi
 
       - name: Generate blog post
