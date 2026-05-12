@@ -62,6 +62,18 @@ Use the `Generate blog post` workflow to create a post from your phone:
 6. Run the workflow.
 7. Review the generated pull request, then merge it if the post is good.
 
+Agents can also trigger the same automation without clicking `Run workflow`:
+
+```bash
+git checkout -b blog/request-kakao-taxi
+npm run create:blog-request -- "how to use Kakao Taxi in Korea as a foreigner" -- --category living
+git add .github/blog-post-request.json
+git commit -m "Request Kakao Taxi blog post"
+git push -u origin blog/request-kakao-taxi
+```
+
+Pushing a `blog/request-*` branch with `.github/blog-post-request.json` starts the workflow, generates the post with repository secrets, and opens a generated-post PR.
+
 Required repository secrets:
 
 - `ANTHROPIC_API_KEY`

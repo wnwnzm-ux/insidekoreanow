@@ -1,6 +1,11 @@
 name: Generate blog post
 
 on:
+  push:
+    branches:
+      - "blog/request-*"
+    paths:
+      - ".github/blog-post-request.json"
   workflow_dispatch:
     inputs:
       keyword:
@@ -65,24 +70,57 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Resolve generation request
+        id: request
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            {
+              echo "keyword=${{ inputs.keyword }}"
+              echo "category=${{ inputs.category }}"
+              echo "status=${{ inputs.status }}"
+              echo "no_images=${{ inputs.no_images }}"
+              echo "force=${{ inputs.force }}"
+            } >> "$GITHUB_OUTPUT"
+          else
+            node <<'NODE' >> "$GITHUB_OUTPUT"
+            const fs = require("node:fs");
+            const request = JSON.parse(fs.readFileSync(".github/blog-post-request.json", "utf8"));
+            const output = {
+              keyword: request.keyword,
+              category: request.category || "auto",
+              status: request.status || "published",
+              no_images: String(Boolean(request.noImages)),
+              force: String(Boolean(request.force)),
+            };
+            for (const [key, value] of Object.entries(output)) {
+              console.log(`${key}=${String(value).replace(/\n/g, " ")}`);
+            }
+            NODE
+          fi
+
       - name: Generate blog post
         shell: bash
         run: |
-          args=("${{ inputs.keyword }}" "--status" "${{ inputs.status }}")
+          args=("${{ steps.request.outputs.keyword }}" "--status" "${{ steps.request.outputs.status }}")
 
-          if [[ "${{ inputs.category }}" != "auto" ]]; then
-            args+=("--category" "${{ inputs.category }}")
+          if [[ "${{ steps.request.outputs.category }}" != "auto" ]]; then
+            args+=("--category" "${{ steps.request.outputs.category }}")
           fi
 
-          if [[ "${{ inputs.no_images }}" == "true" ]]; then
+          if [[ "${{ steps.request.outputs.no_images }}" == "true" ]]; then
             args+=("--no-images")
           fi
 
-          if [[ "${{ inputs.force }}" == "true" ]]; then
+          if [[ "${{ steps.request.outputs.force }}" == "true" ]]; then
             args+=("--force")
           fi
 
           node scripts/generate-post.mjs "${args[@]}"
+
+      - name: Remove request file
+        if: github.event_name == 'push'
+        run: rm -f .github/blog-post-request.json
 
       - name: Sync generated posts
         run: npm run sync:posts
@@ -98,14 +136,14 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: blog/auto-${{ github.run_id }}
           delete-branch: true
-          commit-message: "Add generated blog post for ${{ inputs.keyword }}"
-          title: "Add blog post: ${{ inputs.keyword }}"
+          commit-message: "Add generated blog post for ${{ steps.request.outputs.keyword }}"
+          title: "Add blog post: ${{ steps.request.outputs.keyword }}"
           body: |
             ## Summary
-            - Generated a new blog post from keyword: `${{ inputs.keyword }}`
-            - Category input: `${{ inputs.category }}`
-            - Status: `${{ inputs.status }}`
-            - Unsplash images skipped: `${{ inputs.no_images }}`
+            - Generated a new blog post from keyword: `${{ steps.request.outputs.keyword }}`
+            - Category input: `${{ steps.request.outputs.category }}`
+            - Status: `${{ steps.request.outputs.status }}`
+            - Unsplash images skipped: `${{ steps.request.outputs.no_images }}`
 
             ## Validation
             - `npm run sync:posts`
