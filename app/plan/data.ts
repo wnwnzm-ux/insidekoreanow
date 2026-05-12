@@ -427,3 +427,10 @@ export const PLACES: Place[] = [
 export function getPlacesByCategory(category: PlaceCategory): Place[] {
   return PLACES.filter((p) => p.category === category);
 }
+
+export interface PlanItem {
+  id: string;
+  place: Place;
+  day: number;
+  order: number;
+}
