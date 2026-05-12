@@ -74,6 +74,13 @@ git push -u origin blog/request-kakao-taxi
 
 Pushing a `blog/request-*` branch with `.github/blog-post-request.json` starts the workflow, generates the post with repository secrets, and opens a generated-post PR.
 
+Generated posts include multiple Unsplash images when available:
+
+- Travel and K-Food posts target 5 images.
+- K-Culture, Living in Korea, and Uncategorized posts target 4 images.
+- If exact image searches return too few results, the script retries broader Korea/Seoul fallback queries.
+- The first image is used as the card thumbnail and Open Graph image.
+
 Required repository secrets:
 
 - `ANTHROPIC_API_KEY`

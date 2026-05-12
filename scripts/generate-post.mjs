@@ -199,6 +199,7 @@ async function fetchUnsplashImages(keyword, category) {
   if (!key) return [];
 
   const queries = buildImageQueries(keyword, category);
+  const targetImageCount = imageTargetForCategory(category);
   const seen = new Set();
   const images = [];
 
@@ -214,7 +215,7 @@ async function fetchUnsplashImages(keyword, category) {
         creditName: photo.user?.name,
         creditUrl: photo.user?.links?.html,
       });
-      if (images.length >= 3) return images;
+      if (images.length >= targetImageCount) return images;
     }
   }
 
@@ -224,7 +225,7 @@ async function fetchUnsplashImages(keyword, category) {
 async function searchUnsplash(query, key) {
   const url = new URL("https://api.unsplash.com/search/photos");
   url.searchParams.set("query", query);
-  url.searchParams.set("per_page", "5");
+  url.searchParams.set("per_page", "8");
   url.searchParams.set("orientation", "landscape");
   url.searchParams.set("client_id", key);
 
@@ -249,6 +250,11 @@ function buildImageQueries(keyword, category) {
     ...(categoryFallbacks[category] || categoryFallbacks.uncategorized),
     "Seoul street",
   ];
+}
+
+function imageTargetForCategory(category) {
+  if (category === "travel" || category === "k-food") return 5;
+  return 4;
 }
 
 function insertImages(bodyHtml, images) {
