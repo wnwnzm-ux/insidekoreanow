@@ -28,14 +28,14 @@ function RoutePolyline({ points }: { points: google.maps.LatLngLiteral[] }) {
 
     if (!polylineRef.current) {
       polylineRef.current = new google.maps.Polyline({
-        strokeColor: "#0f766e",
-        strokeOpacity: 0.8,
-        strokeWeight: 3,
+        strokeColor: "#ff4d4d",
+        strokeOpacity: 0.9,
+        strokeWeight: 5,
         icons: [
           {
-            icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 3 },
+            icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 3.5 },
             offset: "50%",
-            repeat: "120px",
+            repeat: "100px",
           },
         ],
       });

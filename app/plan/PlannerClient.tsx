@@ -315,7 +315,7 @@ export function PlannerClient() {
 
       {/* 3-column layout */}
       <div className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-4 sm:px-6 lg:px-8">
-        <div className="grid h-[calc(100vh-140px)] grid-cols-1 gap-4 lg:grid-cols-[320px_1fr_320px]">
+        <div className="grid h-[calc(100vh-140px)] grid-cols-1 gap-4 lg:grid-cols-[300px_1fr_480px]">
           {/* Left */}
           <CategoryPanel onAdd={addPlace} planItems={planItems} />
 
