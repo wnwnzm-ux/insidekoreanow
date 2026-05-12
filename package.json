@@ -10,6 +10,7 @@
     "import:wp": "node scripts/import-wordpress.mjs",
     "export:posts": "node scripts/export-posts-to-content.mjs",
     "sync:posts": "node scripts/sync-posts.mjs",
+    "create:blog-request": "node scripts/create-blog-request.mjs",
     "generate:post": "node scripts/generate-post.mjs",
     "generate:batch": "node scripts/generate-batch.mjs"
   },
