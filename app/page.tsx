@@ -93,53 +93,30 @@ export default function Home() {
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(15,118,110,0.14),transparent)]" />
           <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-16 sm:px-6 sm:pb-24 sm:pt-20 lg:px-8 lg:pb-28 lg:pt-24">
             <p className="text-center text-sm font-medium uppercase tracking-widest text-teal-700">
-              Korea travel, explained clearly
+              Korea Travel Expert
             </p>
             <h1 className="mx-auto mt-4 max-w-3xl text-center text-4xl font-semibold tracking-tight text-balance text-slate-900 sm:text-5xl sm:leading-tight">
-              Explore South Korea with guides built for international visitors
+              Your Korea Trip,{" "}
+              <span className="text-teal-600">Planned by an Expert</span>
             </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-center text-lg leading-relaxed text-pretty text-slate-600">
-              From first arrival to hidden neighborhoods—practical tips, cultural context, and trip ideas
-              in plain English.
+            <p className="mx-auto mt-5 max-w-xl text-center text-lg leading-relaxed text-pretty text-slate-600">
+              Skip the tourist traps. Get a personalized Korea itinerary built by local insiders — in seconds.
             </p>
 
-            <form
-              className="mx-auto mt-10 flex max-w-2xl flex-col gap-3 sm:flex-row sm:items-stretch"
-              role="search"
-              action="#"
-              method="get"
-            >
-              <label className="sr-only" htmlFor="site-search">
-                Search guides and destinations
-              </label>
-              <input
-                id="site-search"
-                name="q"
-                type="search"
-                placeholder="Search destinations, food, transit, etiquette…"
-                className="min-h-12 w-full flex-1 rounded-xl border border-zinc-200 bg-white px-4 text-slate-900 shadow-sm outline-none ring-teal-700/20 placeholder:text-slate-400 focus:border-teal-600 focus:ring-4"
-                autoComplete="off"
-              />
-              <button
-                type="submit"
-                className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl bg-slate-900 px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
-              >
-                Search
-              </button>
-            </form>
-            <p className="mt-4 text-center text-sm text-slate-500">
-              Popular: <span className="text-slate-700">T-money</span>,{" "}
-              <span className="text-slate-700">Jeju</span>,{" "}
-              <span className="text-slate-700">Hanok stay</span>
-            </p>
-            <p className="mt-8 text-center">
+            <div className="mt-10 flex flex-col items-center gap-3">
               <Link
                 href="/plan"
-                className="inline-flex rounded-full bg-teal-700 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
+                className="inline-flex items-center gap-2 rounded-2xl bg-teal-600 px-8 py-4 text-base font-bold text-white shadow-md transition hover:bg-teal-700 hover:shadow-lg active:scale-95"
               >
-                Plan a trip
+                Plan My Korea Trip
+                <svg className="size-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
               </Link>
-            </p>
+              <p className="text-sm text-slate-400">
+                Free · No sign-up required · Built for you
+              </p>
+            </div>
           </div>
         </section>
 
