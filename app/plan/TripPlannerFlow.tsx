@@ -1,17 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import type {
+  TripAnswers,
+  ExtendedAnswers,
+  GeneratedPlan,
+  AppStage,
+} from "./types";
+import { PlanStep2 } from "./PlanStep2";
+import { PlanStep3 } from "./PlanStep3";
+import { PlanStep4 } from "./PlanStep4";
+
+// ── Static data ─────────────────────────────────────────────────────────────────
 
 type Step = 1 | 2 | 3 | 4 | 5;
-
-interface TripAnswers {
-  purpose: string;
-  style: string;
-  companion: string;
-  days: number;
-  budget: string;
-  mustVisit: string;
-}
 
 const PURPOSES = [
   { id: "kpop", label: "K-pop Pilgrimage", emoji: "🎤" },
@@ -49,136 +51,15 @@ const STEP_LABELS = [
   "Any must-visits?",
 ];
 
-export function TripPlannerFlow() {
-  const [step, setStep] = useState<Step>(1);
-  const [animKey, setAnimKey] = useState(0);
-  const [answers, setAnswers] = useState<Partial<TripAnswers>>({
-    days: 5,
-    mustVisit: "",
-  });
+const LOADING_MESSAGES = [
+  "Consulting insider knowledge...",
+  "Planning your optimal route...",
+  "Selecting hidden-gem spots...",
+  "Adding local secrets...",
+  "Finalising your expert plan...",
+];
 
-  const goToStep = (next: Step) => {
-    setStep(next);
-    setAnimKey((k: number) => k + 1);
-  };
-
-  const selectAndAdvance = (field: keyof TripAnswers, value: string, next: Step) => {
-    setAnswers((prev: Partial<TripAnswers>) => ({ ...prev, [field]: value }));
-    setTimeout(() => goToStep(next), 180);
-  };
-
-  const progressPercent = (step / 5) * 100;
-
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white">
-      {/* Hero header */}
-      <div className="px-4 pt-10 pb-8 text-center">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-teal-600">
-          Korea Travel Expert
-        </p>
-        <h1 className="text-2xl font-bold leading-snug text-slate-800 sm:text-3xl">
-          Your Korea trip,{" "}
-          <span className="text-teal-600">planned by an expert</span>
-        </h1>
-        <p className="mt-2 text-sm text-slate-500">
-          Answer 5 quick questions — we'll craft your perfect itinerary.
-        </p>
-      </div>
-
-      {/* Progress bar */}
-      <div className="mx-auto max-w-[600px] px-4 pb-5">
-        <div className="mb-2 flex items-center justify-between text-xs text-slate-400">
-          <span className="font-medium text-slate-600">
-            {STEP_LABELS[step - 1]}
-          </span>
-          <span>
-            {step} <span className="text-slate-300">/</span> 5
-          </span>
-        </div>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-teal-100">
-          <div
-            className="h-1.5 rounded-full bg-teal-500 transition-all duration-500 ease-out"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-
-        {/* Step dots */}
-        <div className="mt-3 flex justify-center gap-1.5">
-          {[1, 2, 3, 4, 5].map((s) => (
-            <span
-              key={s}
-              className={`block h-1.5 rounded-full transition-all duration-300 ${
-                s < step
-                  ? "w-4 bg-teal-500"
-                  : s === step
-                    ? "w-4 bg-teal-600"
-                    : "w-1.5 bg-slate-200"
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Question card */}
-      <div key={animKey} className="mx-auto max-w-[600px] px-4 pb-16">
-        <div className="animate-slide-up rounded-2xl border border-slate-100 bg-white p-6 shadow-md">
-          {step === 1 && (
-            <StepPurpose
-              selected={answers.purpose}
-              onSelect={(v) => selectAndAdvance("purpose", v, 2)}
-            />
-          )}
-          {step === 2 && (
-            <StepStyle
-              selected={answers.style}
-              onSelect={(v) => selectAndAdvance("style", v, 3)}
-            />
-          )}
-          {step === 3 && (
-            <StepCompanion
-              selected={answers.companion}
-              onSelect={(v) => selectAndAdvance("companion", v, 4)}
-            />
-          )}
-          {step === 4 && (
-            <StepDaysBudget
-              days={answers.days ?? 5}
-              budget={answers.budget}
-              onDaysChange={(d) => setAnswers((prev: Partial<TripAnswers>) => ({ ...prev, days: d }))}
-              onBudgetChange={(b) => setAnswers((prev: Partial<TripAnswers>) => ({ ...prev, budget: b }))}
-              onNext={() => goToStep(5)}
-            />
-          )}
-          {step === 5 && (
-            <StepMustVisit
-              value={answers.mustVisit ?? ""}
-              onChange={(v) => setAnswers((prev: Partial<TripAnswers>) => ({ ...prev, mustVisit: v }))}
-              onSubmit={() => {
-                // TODO: Step 2 — show plan options
-                console.log("Trip answers:", answers);
-              }}
-            />
-          )}
-        </div>
-
-        {/* Back button */}
-        {step > 1 && (
-          <button
-            onClick={() => goToStep((step - 1) as Step)}
-            className="mt-3 flex w-full items-center justify-center gap-1.5 py-2 text-sm text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            <svg className="size-3.5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-            </svg>
-            Back
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Sub-components ──────────────────────────────────────────────────────────────
+// ── Question sub-components ──────────────────────────────────────────────────────
 
 function QuestionHeading({ children }: { children: React.ReactNode }) {
   return <h2 className="mb-5 text-lg font-bold text-slate-800">{children}</h2>;
@@ -295,8 +176,6 @@ function StepDaysBudget({
   return (
     <>
       <QuestionHeading>How long & what&apos;s your budget?</QuestionHeading>
-
-      {/* Duration stepper */}
       <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
         Trip Duration
       </p>
@@ -319,8 +198,6 @@ function StepDaysBudget({
           +
         </button>
       </div>
-
-      {/* Budget */}
       <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
         Daily Budget
       </p>
@@ -340,7 +217,6 @@ function StepDaysBudget({
           </button>
         ))}
       </div>
-
       <button
         onClick={onNext}
         disabled={!budget}
@@ -382,8 +258,373 @@ function StepMustVisit({
         onClick={onSubmit}
         className="w-full rounded-xl bg-teal-600 py-3.5 font-semibold text-white transition hover:bg-teal-700"
       >
-        Build My Plan →
+        Next →
       </button>
     </>
+  );
+}
+
+// ── Loading screen ───────────────────────────────────────────────────────────────
+
+function GeneratingScreen() {
+  const [msgIdx, setMsgIdx] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setMsgIdx((i) => (i + 1) % LOADING_MESSAGES.length);
+    }, 2200);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+      {/* Animated spinner */}
+      <div className="relative mb-8">
+        <div className="size-20 rounded-full border-4 border-teal-100" />
+        <div className="absolute inset-0 size-20 rounded-full border-4 border-transparent border-t-teal-600 animate-spin" />
+        <div className="absolute inset-0 flex items-center justify-center text-3xl">
+          🇰🇷
+        </div>
+      </div>
+
+      {/* Skeleton bars */}
+      <div className="mb-8 w-full max-w-sm space-y-3">
+        <div className="h-4 w-3/4 mx-auto rounded-full bg-teal-100 animate-pulse" />
+        <div className="h-3 w-full rounded-full bg-slate-100 animate-pulse" />
+        <div className="h-3 w-5/6 rounded-full bg-slate-100 animate-pulse" />
+        <div className="h-3 w-4/6 rounded-full bg-slate-100 animate-pulse" />
+        <div className="mt-4 h-4 w-2/3 mx-auto rounded-full bg-teal-100 animate-pulse" />
+        <div className="h-3 w-full rounded-full bg-slate-100 animate-pulse" />
+        <div className="h-3 w-5/6 rounded-full bg-slate-100 animate-pulse" />
+      </div>
+
+      <p className="text-base font-semibold text-teal-700">
+        {LOADING_MESSAGES[msgIdx]}
+      </p>
+      <p className="mt-2 text-sm text-slate-400">
+        Your expert itinerary is being crafted
+      </p>
+    </div>
+  );
+}
+
+// ── Error screen ─────────────────────────────────────────────────────────────────
+
+function ErrorScreen({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+      <div className="mb-4 text-5xl">😓</div>
+      <h3 className="mb-2 text-lg font-bold text-slate-800">
+        Something went wrong
+      </h3>
+      <p className="mb-6 text-sm text-slate-500 max-w-xs">{message}</p>
+      <button
+        onClick={onRetry}
+        className="rounded-xl bg-teal-600 px-6 py-3 font-semibold text-white transition hover:bg-teal-700"
+      >
+        Try again
+      </button>
+    </div>
+  );
+}
+
+// ── Main orchestrator ────────────────────────────────────────────────────────────
+
+export function TripPlannerFlow() {
+  const [stage, setStage] = useState<AppStage>("questions");
+  const [qStep, setQStep] = useState<Step>(1);
+  const [animKey, setAnimKey] = useState(0);
+  const [answers, setAnswers] = useState<Partial<TripAnswers>>({
+    days: 5,
+    mustVisit: "",
+  });
+  const [extended, setExtended] = useState<Partial<ExtendedAnswers>>({});
+  const [plan, setPlan] = useState<GeneratedPlan | null>(null);
+  const [error, setError] = useState<string>("");
+
+  const abortRef = useRef<AbortController | null>(null);
+
+  const bumpAnim = () => setAnimKey((k: number) => k + 1);
+
+  const goToQStep = (next: Step) => {
+    setQStep(next);
+    bumpAnim();
+  };
+
+  const selectAndAdvance = (field: keyof TripAnswers, value: string, next: Step) => {
+    setAnswers((prev: Partial<TripAnswers>) => ({ ...prev, [field]: value }));
+    setTimeout(() => goToQStep(next), 180);
+  };
+
+  const startGeneration = async (ext?: Partial<ExtendedAnswers>) => {
+    const finalExtended = ext ?? extended;
+    setExtended(finalExtended);
+    setStage("generating");
+    setError("");
+
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
+    try {
+      const res = await fetch("/api/generate-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers, extended: finalExtended }),
+        signal: ctrl.signal,
+      });
+
+      if (!res.ok) {
+        throw new Error(`Request failed (${res.status})`);
+      }
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        accumulated += decoder.decode(value, { stream: true });
+      }
+      accumulated += decoder.decode();
+
+      const parsed = JSON.parse(accumulated) as GeneratedPlan;
+      setPlan(parsed);
+      setStage("plan");
+    } catch (err) {
+      if ((err as Error).name === "AbortError") return;
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again."
+      );
+      setStage("generating"); // keep on generating screen, show error overlay
+    }
+  };
+
+  // Progress bar — only shown during questions stage
+  const progressPercent = (qStep / 5) * 100;
+  const showProgress = stage === "questions";
+  const showHeader = stage !== "generating" && stage !== "customize";
+
+  return (
+    <div
+      className={`min-h-screen ${
+        stage === "customize"
+          ? "bg-slate-50"
+          : "bg-gradient-to-b from-teal-50 to-white"
+      }`}
+    >
+      {/* Hero header */}
+      {showHeader && (
+        <div className="px-4 pt-10 pb-6 text-center">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-teal-600">
+            Your Personal Korea Travel Expert
+          </p>
+          <h1 className="text-2xl font-bold leading-snug text-slate-800 sm:text-3xl">
+            {stage === "plan" || stage === "branch" || stage === "extra" ? (
+              <>
+                Korea trip,{" "}
+                <span className="text-teal-600">curated for you</span>
+              </>
+            ) : (
+              <>
+                Your Korea trip,{" "}
+                <span className="text-teal-600">planned by an expert</span>
+              </>
+            )}
+          </h1>
+          {stage === "questions" && (
+            <p className="mt-2 text-sm text-slate-500">
+              Answer 5 quick questions — we&apos;ll craft your perfect itinerary.
+            </p>
+          )}
+          {(stage === "branch" || stage === "extra") && (
+            <p className="mt-2 text-sm text-slate-500">
+              Curated by Korea insiders, not algorithms
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Progress bar (questions only) */}
+      {showProgress && (
+        <div className="mx-auto max-w-[600px] px-4 pb-5">
+          <div className="mb-2 flex items-center justify-between text-xs text-slate-400">
+            <span className="font-medium text-slate-600">
+              {STEP_LABELS[qStep - 1]}
+            </span>
+            <span>
+              {qStep} <span className="text-slate-300">/</span> 5
+            </span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-teal-100">
+            <div
+              className="h-1.5 rounded-full bg-teal-500 transition-all duration-500 ease-out"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <div className="mt-3 flex justify-center gap-1.5">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <span
+                key={s}
+                className={`block h-1.5 rounded-full transition-all duration-300 ${
+                  s < qStep
+                    ? "w-4 bg-teal-500"
+                    : s === qStep
+                      ? "w-4 bg-teal-600"
+                      : "w-1.5 bg-slate-200"
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Customize stage (full width) ──────────────────────────────────────── */}
+      {stage === "customize" && plan && (
+        <div className="mx-auto max-w-6xl px-4 pb-10">
+          <PlanStep4
+            plan={plan}
+            onBack={() => setStage("plan")}
+          />
+        </div>
+      )}
+
+      {/* ── Generating stage ──────────────────────────────────────────────────── */}
+      {stage === "generating" && (
+        <div className="mx-auto max-w-[600px] px-4 pb-16">
+          {error ? (
+            <ErrorScreen
+              message={error}
+              onRetry={() => startGeneration(extended)}
+            />
+          ) : (
+            <GeneratingScreen />
+          )}
+        </div>
+      )}
+
+      {/* ── Card stages (questions, branch, extra, plan) ─────────────────────── */}
+      {(stage === "questions" ||
+        stage === "branch" ||
+        stage === "extra" ||
+        stage === "plan") && (
+        <div
+          key={stage === "questions" ? animKey : stage}
+          className={`mx-auto px-4 pb-16 ${
+            stage === "plan" ? "max-w-2xl" : "max-w-[600px]"
+          }`}
+        >
+          <div className="animate-slide-up rounded-2xl border border-slate-100 bg-white p-6 shadow-md">
+            {/* Questions stage */}
+            {stage === "questions" && (
+              <>
+                {qStep === 1 && (
+                  <StepPurpose
+                    selected={answers.purpose}
+                    onSelect={(v) => selectAndAdvance("purpose", v, 2)}
+                  />
+                )}
+                {qStep === 2 && (
+                  <StepStyle
+                    selected={answers.style}
+                    onSelect={(v) => selectAndAdvance("style", v, 3)}
+                  />
+                )}
+                {qStep === 3 && (
+                  <StepCompanion
+                    selected={answers.companion}
+                    onSelect={(v) => selectAndAdvance("companion", v, 4)}
+                  />
+                )}
+                {qStep === 4 && (
+                  <StepDaysBudget
+                    days={answers.days ?? 5}
+                    budget={answers.budget}
+                    onDaysChange={(d) =>
+                      setAnswers((prev: Partial<TripAnswers>) => ({ ...prev, days: d }))
+                    }
+                    onBudgetChange={(b) =>
+                      setAnswers((prev: Partial<TripAnswers>) => ({ ...prev, budget: b }))
+                    }
+                    onNext={() => goToQStep(5)}
+                  />
+                )}
+                {qStep === 5 && (
+                  <StepMustVisit
+                    value={answers.mustVisit ?? ""}
+                    onChange={(v) =>
+                      setAnswers((prev: Partial<TripAnswers>) => ({
+                        ...prev,
+                        mustVisit: v,
+                      }))
+                    }
+                    onSubmit={() => {
+                      bumpAnim();
+                      setStage("branch");
+                    }}
+                  />
+                )}
+              </>
+            )}
+
+            {/* Branch stage */}
+            {(stage === "branch" || stage === "extra") && (
+              <PlanStep2
+                onBuildNow={() => startGeneration({})}
+                onCustomizeMore={(ext) => startGeneration(ext)}
+              />
+            )}
+
+            {/* Plan stage */}
+            {stage === "plan" && plan && (
+              <PlanStep3
+                plan={plan}
+                onCustomize={() => setStage("customize")}
+              />
+            )}
+          </div>
+
+          {/* Back button */}
+          {(stage === "questions" && qStep > 1) && (
+            <button
+              onClick={() => goToQStep((qStep - 1) as Step)}
+              className="mt-3 flex w-full items-center justify-center gap-1.5 py-2 text-sm text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <svg className="size-3.5" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Back
+            </button>
+          )}
+          {stage === "plan" && (
+            <button
+              onClick={() => setStage("branch")}
+              className="mt-3 flex w-full items-center justify-center gap-1.5 py-2 text-sm text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <svg className="size-3.5" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Regenerate plan
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
