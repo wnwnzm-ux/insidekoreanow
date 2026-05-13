@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { SITE_NAME } from "@/lib/site";
-import { PlannerClient } from "./PlannerClient";
+import { TripPlannerFlow } from "./TripPlannerFlow";
 
 export const metadata: Metadata = {
   title: "Plan a trip",
-  description: "Build your perfect Korea itinerary — pick places, organize by day, and visualize your route.",
+  description: "Tell us about your trip and our Korea Travel Expert will build a personalised itinerary just for you.",
   alternates: {
     canonical: "/plan",
   },
@@ -12,15 +12,15 @@ export const metadata: Metadata = {
     type: "website",
     url: "/plan",
     title: `Plan a trip | ${SITE_NAME}`,
-    description: "Build your perfect Korea itinerary — pick places, organize by day, and visualize your route.",
+    description: "Tell us about your trip and our Korea Travel Expert will build a personalised itinerary just for you.",
   },
   twitter: {
     card: "summary_large_image",
     title: `Plan a trip | ${SITE_NAME}`,
-    description: "Build your perfect Korea itinerary — pick places, organize by day, and visualize your route.",
+    description: "Tell us about your trip and our Korea Travel Expert will build a personalised itinerary just for you.",
   },
 };
 
 export default function PlanPage() {
-  return <PlannerClient />;
+  return <TripPlannerFlow />;
 }
