@@ -14,7 +14,7 @@ import { PlanStep4 } from "./PlanStep4";
 
 // ── localStorage ─────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = "ikn_korea_plan_v1";
+const STORAGE_KEY = "ikn_korea_plan_v2";
 
 interface SavedState {
   answers: Partial<TripAnswers>;
