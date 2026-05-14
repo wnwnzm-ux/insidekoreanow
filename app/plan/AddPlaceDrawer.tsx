@@ -18,11 +18,13 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onAdd: (place: PlaceItem) => void;
+  onAddMeal?: (restaurant: RecommendedRestaurant, slot: 0 | 1) => void;
+  activeMealPicks?: (RecommendedRestaurant | null)[];
   existingNames: Set<string>;
-  activeDay?: number; // 0-based day index for area-aware food recommendations
+  activeDay?: number;
 }
 
-export function AddPlaceDrawer({ open, onClose, onAdd, existingNames, activeDay = 0 }: Props) {
+export function AddPlaceDrawer({ open, onClose, onAdd, onAddMeal, activeMealPicks, existingNames, activeDay = 0 }: Props) {
   const [category, setCategory] = useState("all");
   const [query, setQuery] = useState("");
   const [dbFoods, setDbFoods] = useState<RecommendedRestaurant[]>([]);
@@ -200,13 +202,40 @@ export function AddPlaceDrawer({ open, onClose, onAdd, existingNames, activeDay 
                         </div>
                         {dish && <p className="mt-0.5 text-xs text-teal-700 truncate">Try: {dish.name}{dish.korean_name ? ` (${dish.korean_name})` : ""}</p>}
                       </div>
-                      <button
-                        onClick={() => !already && handleAddDb(r)}
-                        disabled={already}
-                        className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${already ? "bg-slate-100 text-slate-400 cursor-default" : "bg-teal-600 text-white hover:bg-teal-700 active:scale-95"}`}
-                      >
-                        {already ? "✓ Added" : "+ Add"}
-                      </button>
+                      {onAddMeal ? (
+                        <div className="flex shrink-0 flex-col gap-1">
+                          {(() => {
+                            const isLunch = activeMealPicks?.[0]?.name === r.name;
+                            const isDinner = activeMealPicks?.[1]?.name === r.name;
+                            return (
+                              <>
+                                <button
+                                  onClick={() => !isLunch && onAddMeal(r, 0)}
+                                  disabled={isLunch}
+                                  className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition ${isLunch ? "bg-amber-100 text-amber-600 cursor-default" : "bg-amber-500 text-white hover:bg-amber-600 active:scale-95"}`}
+                                >
+                                  {isLunch ? "✓ Lunch" : "+ Lunch"}
+                                </button>
+                                <button
+                                  onClick={() => !isDinner && onAddMeal(r, 1)}
+                                  disabled={isDinner}
+                                  className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition ${isDinner ? "bg-orange-100 text-orange-600 cursor-default" : "bg-orange-500 text-white hover:bg-orange-600 active:scale-95"}`}
+                                >
+                                  {isDinner ? "✓ Dinner" : "+ Dinner"}
+                                </button>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => !already && handleAddDb(r)}
+                          disabled={already}
+                          className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${already ? "bg-slate-100 text-slate-400 cursor-default" : "bg-teal-600 text-white hover:bg-teal-700 active:scale-95"}`}
+                        >
+                          {already ? "✓ Added" : "+ Add"}
+                        </button>
+                      )}
                     </div>
                   );
                 })}

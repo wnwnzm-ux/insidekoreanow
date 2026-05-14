@@ -168,7 +168,7 @@ interface Props {
   plan: GeneratedPlan;
   onCustomize: () => void;
   budget?: string;
-  mealPicks?: Record<number, RecommendedRestaurant[]>;
+  mealPicks?: Record<number, (RecommendedRestaurant | null)[]>;
   onMealsFetched?: (day: number, meals: RecommendedRestaurant[]) => void;
 }
 
@@ -223,7 +223,9 @@ export function PlanStep3({ plan, onCustomize, budget = "mid", mealPicks, onMeal
   function buildDayItems() {
     if (!currentDay) return null;
     const places = currentDay.places;
-    const meals = currentMeals ?? [];
+    const dayFetched = currentMeals !== undefined;
+    const lunch = currentMeals?.[0] ?? null;
+    const dinner = currentMeals?.[1] ?? null;
     const lunchAfterIdx = Math.max(1, Math.ceil(places.length / 2));
     const nodes: React.ReactNode[] = [];
     let lunchInserted = false;
@@ -232,18 +234,18 @@ export function PlanStep3({ plan, onCustomize, budget = "mid", mealPicks, onMeal
       nodes.push(<PlaceCard key={place.id} place={place} index={i} />);
       if (i + 1 === lunchAfterIdx) {
         lunchInserted = true;
-        if (mealsLoading) nodes.push(<MealCardSkeleton key="l-skel" label="Lunch" />);
-        else if (meals[0]) nodes.push(<MealCard key={`l-${meals[0].id}`} r={meals[0]} label="Lunch" />);
+        if (!dayFetched) nodes.push(<MealCardSkeleton key="l-skel" label="Lunch" />);
+        else if (lunch) nodes.push(<MealCard key={`l-${lunch.id}`} r={lunch} label="Lunch" />);
       }
     });
 
     if (!lunchInserted) {
-      if (mealsLoading) nodes.push(<MealCardSkeleton key="l-skel" label="Lunch" />);
-      else if (meals[0]) nodes.push(<MealCard key={`l-${meals[0].id}`} r={meals[0]} label="Lunch" />);
+      if (!dayFetched) nodes.push(<MealCardSkeleton key="l-skel" label="Lunch" />);
+      else if (lunch) nodes.push(<MealCard key={`l-${lunch.id}`} r={lunch} label="Lunch" />);
     }
 
-    if (mealsLoading) nodes.push(<MealCardSkeleton key="d-skel" label="Dinner" />);
-    else if (meals[1]) nodes.push(<MealCard key={`d-${meals[1].id}`} r={meals[1]} label="Dinner" />);
+    if (!dayFetched) nodes.push(<MealCardSkeleton key="d-skel" label="Dinner" />);
+    else if (dinner) nodes.push(<MealCard key={`d-${dinner.id}`} r={dinner} label="Dinner" />);
 
     return nodes;
   }
