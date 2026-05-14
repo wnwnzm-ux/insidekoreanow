@@ -11,6 +11,7 @@ Your task is to create highly personalised Korea itineraries in JSON format.
 
 OUTPUT FORMAT:
 Return ONLY a valid JSON object. No markdown fences, no explanation, no extra text before or after. Start your response with { and end with }.
+Output COMPACT minified JSON — no newlines, no indentation, no spaces between tokens. Every character counts.
 
 JSON SCHEMA (follow exactly):
 {
