@@ -76,53 +76,69 @@ const BUDGET_LABELS: Record<string, string> = {
 };
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json()) as {
-    answers: TripAnswers;
-    extended?: Partial<ExtendedAnswers>;
-    day: number;
-    totalDays: number;
-    isFirst: boolean;
-  };
-  const { answers, extended, day, totalDays, isFirst } = body;
+  try {
+    const body = (await request.json()) as {
+      answers: TripAnswers;
+      extended?: Partial<ExtendedAnswers>;
+      day: number;
+      totalDays: number;
+      isFirst: boolean;
+    };
+    const { answers, extended, day, totalDays, isFirst } = body;
 
-  const area = DAY_AREAS[day - 1] ?? DAY_AREAS[0];
-  const extras = extended
-    ? [
-        extended.dietary?.length ? `dietary: ${extended.dietary.join(", ")}` : null,
-        extended.accommodation ? `staying in: ${extended.accommodation}` : null,
-        extended.avoid ? `avoid: ${extended.avoid}` : null,
-        extended.kpopSites ? `kpop interests: ${extended.kpopSites}` : null,
-      ]
-        .filter(Boolean)
-        .join(", ")
-    : "";
+    const area = DAY_AREAS[day - 1] ?? DAY_AREAS[0];
+    const extras = extended
+      ? [
+          extended.dietary?.length ? `dietary: ${extended.dietary.join(", ")}` : null,
+          extended.accommodation ? `staying in: ${extended.accommodation}` : null,
+          extended.avoid ? `avoid: ${extended.avoid}` : null,
+          extended.kpopSites ? `kpop interests: ${extended.kpopSites}` : null,
+        ]
+          .filter(Boolean)
+          .join(", ")
+      : "";
 
-  const userMessage = isFirst
-    ? `Day 1 of ${totalDays}. Area focus: ${area}.
+    const userMessage = isFirst
+      ? `Day 1 of ${totalDays}. Area focus: ${area}.
 Traveller: ${PURPOSE_LABELS[answers.purpose] ?? answers.purpose}, ${STYLE_LABELS[answers.style] ?? answers.style}, ${COMPANION_LABELS[answers.companion] ?? answers.companion}, ${BUDGET_LABELS[answers.budget] ?? answers.budget}.${answers.mustVisit ? ` Must-visit: ${answers.mustVisit}.` : ""}${extras ? ` ${extras}.` : ""}
 Include plan header (title, overview, expertNote) + Day 1 with 3 places.`
-    : `Day ${day} of ${totalDays}. Area focus: ${area}.
+      : `Day ${day} of ${totalDays}. Area focus: ${area}.
 Traveller: ${PURPOSE_LABELS[answers.purpose] ?? answers.purpose}, ${STYLE_LABELS[answers.style] ?? answers.style}, ${COMPANION_LABELS[answers.companion] ?? answers.companion}, ${BUDGET_LABELS[answers.budget] ?? answers.budget}.${answers.mustVisit ? ` Must-visit: ${answers.mustVisit}.` : ""}
 Generate Day ${day} with 3 places. Different area from previous days.`;
 
-  const client = new Anthropic();
+    const client = new Anthropic();
 
-  const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 1200,
-    system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
-    messages: [
-      { role: "user", content: userMessage },
-      { role: "assistant", content: "{" },
-    ],
-  });
+    const response = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1200,
+      system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+      messages: [
+        { role: "user", content: userMessage },
+        { role: "assistant", content: "{" },
+      ],
+    });
 
-  const text = response.content[0].type === "text" ? response.content[0].text : "";
-  const full = "{" + text;
-  const lastBrace = full.lastIndexOf("}");
-  const jsonStr = lastBrace !== -1 ? full.slice(0, lastBrace + 1) : full;
+    const text = response.content[0].type === "text" ? response.content[0].text : "";
+    const full = "{" + text;
 
-  return new Response(jsonStr, {
-    headers: { "Content-Type": "application/json" },
-  });
+    // Validate JSON is parseable; if not, return 422 with the raw output so we can diagnose
+    try {
+      JSON.parse(full);
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "model_json_invalid", raw: full.slice(0, 600), stop_reason: response.stop_reason }),
+        { status: 422, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    return new Response(full, {
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return new Response(
+      JSON.stringify({ error: "server_error", message }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
 }
