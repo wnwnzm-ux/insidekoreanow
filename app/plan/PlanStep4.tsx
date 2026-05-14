@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { PlaceItem, DayPlan } from "./types";
+import type { RecommendedRestaurant } from "@/app/api/restaurants/recommend/route";
 import { MockMap } from "./MockMap";
 import { AddPlaceDrawer } from "./AddPlaceDrawer";
 
@@ -99,9 +100,10 @@ interface Props {
   days: DayPlan[];
   setDays: (days: DayPlan[]) => void;
   onBack: () => void;
+  mealPicks?: Record<number, RecommendedRestaurant[]>;
 }
 
-export function PlanStep4({ days, setDays, onBack }: Props) {
+export function PlanStep4({ days, setDays, onBack, mealPicks }: Props) {
   const [activeDay, setActiveDay] = useState(0);
   const [mobileTab, setMobileTab] = useState<"plan" | "map">("plan");
   const [highlightedId, setHighlightedId] = useState<string>("");
@@ -237,6 +239,45 @@ export function PlanStep4({ days, setDays, onBack }: Props) {
             {days[activeDay]?.places.length === 0 && (
               <div className="rounded-xl border-2 border-dashed border-slate-200 py-8 text-center text-sm text-slate-400">
                 All places removed. This day is free!
+              </div>
+            )}
+
+            {/* Meal picks from curated DB */}
+            {(mealPicks?.[activeDay]?.length ?? 0) > 0 && (
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <div className="mb-2 flex items-center gap-1.5">
+                  <span className="text-sm">🍽️</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Meal Picks</span>
+                </div>
+                <div className="space-y-2">
+                  {mealPicks![activeDay].map((r, i) => {
+                    const dish = r.recommended_menu?.[0];
+                    return (
+                      <div key={r.id} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-2.5">
+                        <span className={`flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${i === 0 ? "bg-amber-100 text-amber-700" : "bg-purple-100 text-purple-700"}`}>
+                          {i === 0 ? "L" : "D"}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-slate-500">{i === 0 ? "Lunch" : "Dinner"}</span>
+                            <span className="font-semibold text-sm text-slate-800 truncate">{r.name}</span>
+                            {r.korean_name && <span className="text-[11px] text-slate-400 truncate">{r.korean_name}</span>}
+                          </div>
+                          <p className="text-[11px] text-slate-400 truncate">
+                            📍 {r.district ?? r.neighborhood ?? "Seoul"}
+                            {dish && <> · {dish.name}</>}
+                          </p>
+                        </div>
+                        {r.maps_url && (
+                          <a href={r.maps_url} target="_blank" rel="noopener noreferrer"
+                            className="shrink-0 rounded-md border border-teal-200 bg-teal-50 px-2 py-1 text-[10px] font-semibold text-teal-700 hover:bg-teal-100 transition-colors">
+                            Map
+                          </a>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
