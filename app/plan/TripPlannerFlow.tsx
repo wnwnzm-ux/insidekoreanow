@@ -341,6 +341,26 @@ export function TripPlannerFlow() {
     setMealPicks((prev) => ({ ...prev, [day]: [meals[0] ?? null, meals[1] ?? null] }));
   }, []);
 
+  const fetchAllMealPicks = useCallback((planDaysCount: number, budget: string) => {
+    Array.from({ length: planDaysCount }, (_, i) => i).forEach((dayIndex) => {
+      const params = new URLSearchParams({ city: "Seoul", day: String(dayIndex + 1), budget, limit: "2" });
+      fetch(`/api/restaurants/recommend?${params}`)
+        .then((r) => r.json())
+        .then((data: { restaurants: RecommendedRestaurant[] }) => {
+          setMealPicks((prev) => {
+            if (prev[dayIndex] !== undefined) return prev;
+            return { ...prev, [dayIndex]: [data.restaurants?.[0] ?? null, data.restaurants?.[1] ?? null] };
+          });
+        })
+        .catch(() => {
+          setMealPicks((prev) => {
+            if (prev[dayIndex] !== undefined) return prev;
+            return { ...prev, [dayIndex]: [null, null] };
+          });
+        });
+    });
+  }, []);
+
   const handleRemoveMealPick = useCallback((day: number, slot: number) => {
     setMealPicks((prev) => {
       const next = [...(prev[day] ?? [null, null])];
@@ -359,6 +379,17 @@ export function TripPlannerFlow() {
 
   const abortRef = useRef<AbortController | null>(null);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Pre-fetch all days' meal picks when a saved plan is restored on mount
+  const fetchAllMealPicksRef = useRef(fetchAllMealPicks);
+  fetchAllMealPicksRef.current = fetchAllMealPicks;
+  useEffect(() => {
+    const saved = loadSaved();
+    if (saved?.plan) {
+      fetchAllMealPicksRef.current(saved.plan.days.length, saved.answers?.budget ?? "mid");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Persist to localStorage on every relevant change ──────────────────────────
   useEffect(() => {
@@ -447,6 +478,7 @@ export function TripPlannerFlow() {
 
       setPlan(assembled);
       setCustomDays(null);
+      fetchAllMealPicks(totalDays, answers.budget ?? "mid");
       setTimeout(() => setStage("plan"), 500);
     } catch (err) {
       clearInterval(progressTimerRef.current!);
