@@ -74,9 +74,7 @@ Return ONLY valid JSON — no markdown, no extra text. Start with { end with }.
           "neighborhood": "Seoul district (e.g. Jongno, Hongdae, Gangnam-gu)",
           "duration": "X hours",
           "bestTime": "Best time to visit, 10 words max",
-          "expertTip": "Specific insider tip: exact item, stall, or technique, 20 words max",
-          "insiderNote": "What tourists miss, genuine local insight, 20 words max",
-          "whyPicked": "Why this place for this traveller, 15 words max",
+          "expertTip": "Specific insider tip: exact item, stall, or technique, 25 words max",
           "emoji": "one emoji"
         }
       ]
@@ -105,7 +103,7 @@ export async function POST(request: NextRequest) {
 
   const anthropicStream = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 5000,
+    max_tokens: 3000,
     stream: true,
     messages: [{ role: "user", content: buildPrompt(answers, extended) }],
   });
