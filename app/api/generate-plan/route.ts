@@ -2,7 +2,6 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { NextRequest } from "next/server";
 import type { TripAnswers, ExtendedAnswers } from "@/app/plan/types";
 
-export const runtime = "edge";
 
 const PURPOSE_LABELS: Record<string, string> = {
   kpop: "K-pop Pilgrimage (idol agencies, concert venues, fan cafes, merch shops)",
