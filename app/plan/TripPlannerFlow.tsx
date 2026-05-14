@@ -44,6 +44,40 @@ function clearSaved() {
   try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
 }
 
+// ── Mock plan for UI testing (no API tokens) ────────────────────────────────────
+
+const MOCK_PLAN: GeneratedPlan = {
+  title: "Seoul Insider: 3-Day Food & Culture",
+  overview: "A handpicked journey through Seoul's most authentic neighbourhoods, blending royal history with street food discoveries.",
+  expertNote: "Skip the tourist traps — every spot here is where locals actually go.",
+  days: [
+    {
+      day: 1, theme: "Palaces, Hanok & Hidden Food Gems",
+      places: [
+        { id: "m1_1", name: "Gyeongbokgung Palace", category: "attraction", neighborhood: "Jongno", duration: "2.5 hours", bestTime: "Weekday 9am before crowds", expertTip: "Rent hanbok at the gate — free entry and stunning photos near the main gate.", emoji: "🏯" },
+        { id: "m1_2", name: "Bukchon Hanok Village", category: "neighborhood", neighborhood: "Bukchon", duration: "2 hours", bestTime: "Weekday 8–9am", expertTip: "Take alley 11 from the main viewpoint — leads to a hidden courtyard café most tourists miss.", emoji: "🏘️" },
+        { id: "m1_3", name: "Ikseon-dong Hanok Alley", category: "neighborhood", neighborhood: "Jongno", duration: "2 hours", bestTime: "Evening 6–9pm when lanterns are lit", expertTip: "The narrow alley behind the main street has quieter, cheaper bars — start there.", emoji: "🏮" },
+      ],
+    },
+    {
+      day: 2, theme: "Hongdae Vibes & Street Food",
+      places: [
+        { id: "m2_1", name: "Hongdae Shopping Street", category: "shopping", neighborhood: "Hongdae", duration: "2.5 hours", bestTime: "Friday evening 7–10pm for performers", expertTip: "Underground mall below Hongdae station has indie fashion 40% cheaper than above-ground shops.", emoji: "🎭" },
+        { id: "m2_2", name: "Mangwon Market", category: "food", neighborhood: "Mangwon", duration: "1.5 hours", bestTime: "Weekend morning 9am–12pm", expertTip: "Tteok stall at the east entrance makes weekend-only flavors — sells out by noon.", emoji: "🥪" },
+        { id: "m2_3", name: "Fritz Coffee Domamdong", category: "cafe", neighborhood: "Mangwon", duration: "1 hour", bestTime: "Weekday morning", expertTip: "Buy beans here — used by Seoul's best specialty coffee shops. The cult following is real.", emoji: "🎺" },
+      ],
+    },
+    {
+      day: 3, theme: "Gangnam, Sinsa & Upscale Seoul",
+      places: [
+        { id: "m3_1", name: "COEX Mall & Starfield Library", category: "shopping", neighborhood: "Gangnam", duration: "2 hours", bestTime: "Weekday for fewer people at the library", expertTip: "Library photo is best from 2nd floor mezzanine — arrive 30 min before opening to beat queues.", emoji: "📚" },
+        { id: "m3_2", name: "Garosu-gil", category: "neighborhood", neighborhood: "Sinsa", duration: "2 hours", bestTime: "Weekday afternoon or autumn for ginkgo trees", expertTip: "Boutiques off the main boulevard have Korean designer clothes cheaper than Cheongdam flagships.", emoji: "🌲" },
+        { id: "m3_3", name: "Maple Tree House", category: "food", neighborhood: "Itaewon", duration: "2 hours", bestTime: "Dinner — book 2 weeks ahead for weekends", expertTip: "Oak-smoked galbi short rib is the signature — skip wagyu, go local Korean black cattle (hanwoo).", emoji: "🥩" },
+      ],
+    },
+  ],
+};
+
 // ── Static data ─────────────────────────────────────────────────────────────────
 
 type Step = 1 | 2 | 3 | 4 | 5;
@@ -573,6 +607,23 @@ export function TripPlannerFlow() {
               Regenerate plan
             </button>
           )}
+        </div>
+      )}
+
+      {/* Hidden dev test button — loads mock plan without API call */}
+      {stage === "questions" && (
+        <div className="pb-4 text-center">
+          <button
+            onClick={() => {
+              setPlan(MOCK_PLAN);
+              setAnswers({ days: 3, budget: "mid", purpose: "food", style: "mix", companion: "couple", mustVisit: "" });
+              setCustomDays(null);
+              setStage("plan");
+            }}
+            className="text-[10px] text-slate-200 hover:text-slate-400 transition-colors"
+          >
+            ·
+          </button>
         </div>
       )}
     </div>
