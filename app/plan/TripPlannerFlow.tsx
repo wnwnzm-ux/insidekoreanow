@@ -335,10 +335,26 @@ export function TripPlannerFlow() {
   });
   const [error, setError] = useState<string>("");
   const [genProgress, setGenProgress] = useState(0);
-  const [mealPicks, setMealPicks] = useState<Record<number, RecommendedRestaurant[]>>({});
+  const [mealPicks, setMealPicks] = useState<Record<number, (RecommendedRestaurant | null)[]>>({});
 
   const handleMealsFetched = useCallback((day: number, meals: RecommendedRestaurant[]) => {
-    setMealPicks((prev) => ({ ...prev, [day]: meals }));
+    setMealPicks((prev) => ({ ...prev, [day]: [meals[0] ?? null, meals[1] ?? null] }));
+  }, []);
+
+  const handleRemoveMealPick = useCallback((day: number, slot: number) => {
+    setMealPicks((prev) => {
+      const next = [...(prev[day] ?? [null, null])];
+      next[slot] = null;
+      return { ...prev, [day]: next };
+    });
+  }, []);
+
+  const handleUpdateMealPick = useCallback((day: number, slot: number, r: RecommendedRestaurant) => {
+    setMealPicks((prev) => {
+      const next = [...(prev[day] ?? [null, null])];
+      next[slot] = r;
+      return { ...prev, [day]: next };
+    });
   }, []);
 
   const abortRef = useRef<AbortController | null>(null);
@@ -537,6 +553,8 @@ export function TripPlannerFlow() {
             setDays={setActiveDays}
             onBack={() => setStage("plan")}
             mealPicks={mealPicks}
+            onRemoveMealPick={handleRemoveMealPick}
+            onUpdateMealPick={handleUpdateMealPick}
           />
         </div>
       )}

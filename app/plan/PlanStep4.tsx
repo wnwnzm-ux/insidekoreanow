@@ -100,10 +100,12 @@ interface Props {
   days: DayPlan[];
   setDays: (days: DayPlan[]) => void;
   onBack: () => void;
-  mealPicks?: Record<number, RecommendedRestaurant[]>;
+  mealPicks?: Record<number, (RecommendedRestaurant | null)[]>;
+  onRemoveMealPick?: (day: number, slot: number) => void;
+  onUpdateMealPick?: (day: number, slot: number, r: RecommendedRestaurant) => void;
 }
 
-export function PlanStep4({ days, setDays, onBack, mealPicks }: Props) {
+export function PlanStep4({ days, setDays, onBack, mealPicks, onRemoveMealPick, onUpdateMealPick }: Props) {
   const [activeDay, setActiveDay] = useState(0);
   const [mobileTab, setMobileTab] = useState<"plan" | "map">("plan");
   const [highlightedId, setHighlightedId] = useState<string>("");
@@ -221,15 +223,51 @@ export function PlanStep4({ days, setDays, onBack, mealPicks }: Props) {
             {/* Interleaved place rows + meal picks */}
             {(() => {
               const places = days[activeDay]?.places ?? [];
-              const meals = mealPicks?.[activeDay] ?? [];
+              const dayMeals = mealPicks?.[activeDay];
+              const lunch = dayMeals?.[0] ?? null;
+              const dinner = dayMeals?.[1] ?? null;
               const lunchAfterIdx = Math.max(1, Math.ceil(places.length / 2));
               const nodes: React.ReactNode[] = [];
               let lunchInserted = false;
-              const MEAL_LABELS = ["Lunch", "Dinner"];
-              const MEAL_COLORS = [
-                { badge: "bg-amber-500", border: "border-amber-200", bg: "bg-amber-50" },
-                { badge: "bg-orange-600", border: "border-orange-200", bg: "bg-orange-50" },
-              ];
+
+              const DeleteBtn = ({ slot }: { slot: number }) => (
+                <button
+                  onClick={() => onRemoveMealPick?.(activeDay, slot)}
+                  className="flex size-6 shrink-0 items-center justify-center rounded text-slate-300 hover:bg-red-50 hover:text-red-500 transition"
+                  title="Remove"
+                >
+                  <svg className="size-3.5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              );
+
+              const MealRow = ({ r, slot }: { r: RecommendedRestaurant; slot: number }) => {
+                const isLunch = slot === 0;
+                const dish = r.recommended_menu?.[0];
+                return (
+                  <div className={`flex items-center gap-3 rounded-xl border p-3 ${isLunch ? "border-amber-200 bg-amber-50" : "border-orange-200 bg-orange-50"}`}>
+                    <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${isLunch ? "bg-amber-500" : "bg-orange-600"}`}>
+                      {isLunch ? "L" : "D"}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`text-xs font-bold ${isLunch ? "text-amber-700" : "text-orange-700"}`}>{isLunch ? "Lunch" : "Dinner"}</span>
+                        <span className="font-semibold text-sm text-slate-800 truncate">{r.name}</span>
+                        {r.korean_name && <span className="text-[11px] text-slate-400">{r.korean_name}</span>}
+                      </div>
+                      <p className="text-[11px] text-slate-500 truncate">🍽️ {r.district ?? "Seoul"}{dish ? ` · ${dish.name}` : ""}</p>
+                    </div>
+                    {r.maps_url && (
+                      <a href={r.maps_url} target="_blank" rel="noopener noreferrer"
+                        className="shrink-0 rounded-md border border-teal-200 bg-white px-2 py-1 text-[10px] font-semibold text-teal-700 hover:bg-teal-50 transition-colors">
+                        Map
+                      </a>
+                    )}
+                    <DeleteBtn slot={slot} />
+                  </div>
+                );
+              };
 
               places.forEach((place, pi) => {
                 nodes.push(
@@ -245,71 +283,14 @@ export function PlanStep4({ days, setDays, onBack, mealPicks }: Props) {
                     onClick={() => setHighlightedId((id) => (id === place.id ? "" : place.id))}
                   />
                 );
-                if (pi + 1 === lunchAfterIdx && meals[0]) {
+                if (pi + 1 === lunchAfterIdx && lunch) {
                   lunchInserted = true;
-                  const r = meals[0];
-                  const c = MEAL_COLORS[0];
-                  const dish = r.recommended_menu?.[0];
-                  nodes.push(
-                    <div key={`meal-0`} className={`flex items-center gap-3 rounded-xl border ${c.border} ${c.bg} p-3`}>
-                      <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${c.badge}`}>L</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-xs font-bold text-amber-700">{MEAL_LABELS[0]}</span>
-                          <span className="font-semibold text-sm text-slate-800 truncate">{r.name}</span>
-                          {r.korean_name && <span className="text-[11px] text-slate-400">{r.korean_name}</span>}
-                        </div>
-                        <p className="text-[11px] text-slate-500 truncate">🍽️ {r.district ?? "Seoul"}{dish ? ` · ${dish.name}` : ""}</p>
-                      </div>
-                      {r.maps_url && (
-                        <a href={r.maps_url} target="_blank" rel="noopener noreferrer"
-                          className="shrink-0 rounded-md border border-teal-200 bg-white px-2 py-1 text-[10px] font-semibold text-teal-700 hover:bg-teal-50 transition-colors">
-                          Map
-                        </a>
-                      )}
-                    </div>
-                  );
+                  nodes.push(<MealRow key="meal-0" r={lunch} slot={0} />);
                 }
               });
 
-              if (!lunchInserted && meals[0]) {
-                const r = meals[0];
-                const c = MEAL_COLORS[0];
-                const dish = r.recommended_menu?.[0];
-                nodes.push(
-                  <div key="meal-0" className={`flex items-center gap-3 rounded-xl border ${c.border} ${c.bg} p-3`}>
-                    <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${c.badge}`}>L</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-xs font-bold text-amber-700">Lunch</span>
-                        <span className="font-semibold text-sm text-slate-800 truncate">{r.name}</span>
-                      </div>
-                      <p className="text-[11px] text-slate-500 truncate">🍽️ {r.district ?? "Seoul"}{dish ? ` · ${dish.name}` : ""}</p>
-                    </div>
-                    {r.maps_url && <a href={r.maps_url} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-md border border-teal-200 bg-white px-2 py-1 text-[10px] font-semibold text-teal-700 hover:bg-teal-50">Map</a>}
-                  </div>
-                );
-              }
-
-              if (meals[1]) {
-                const r = meals[1];
-                const c = MEAL_COLORS[1];
-                const dish = r.recommended_menu?.[0];
-                nodes.push(
-                  <div key="meal-1" className={`flex items-center gap-3 rounded-xl border ${c.border} ${c.bg} p-3`}>
-                    <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${c.badge}`}>D</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-xs font-bold text-orange-700">Dinner</span>
-                        <span className="font-semibold text-sm text-slate-800 truncate">{r.name}</span>
-                        {r.korean_name && <span className="text-[11px] text-slate-400">{r.korean_name}</span>}
-                      </div>
-                      <p className="text-[11px] text-slate-500 truncate">🍽️ {r.district ?? "Seoul"}{dish ? ` · ${dish.name}` : ""}</p>
-                    </div>
-                    {r.maps_url && <a href={r.maps_url} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-md border border-teal-200 bg-white px-2 py-1 text-[10px] font-semibold text-teal-700 hover:bg-teal-50">Map</a>}
-                  </div>
-                );
-              }
+              if (!lunchInserted && lunch) nodes.push(<MealRow key="meal-0" r={lunch} slot={0} />);
+              if (dinner) nodes.push(<MealRow key="meal-1" r={dinner} slot={1} />);
 
               return <div className="space-y-2">{nodes}</div>;
             })()}
@@ -367,10 +348,12 @@ export function PlanStep4({ days, setDays, onBack, mealPicks }: Props) {
       <AddPlaceDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        onAdd={(place) => {
-          addPlace(place);
+        onAdd={(place) => { addPlace(place); setDrawerOpen(false); }}
+        onAddMeal={(r, slot) => {
+          onUpdateMealPick?.(activeDay, slot, r);
           setDrawerOpen(false);
         }}
+        activeMealPicks={mealPicks?.[activeDay]}
         existingNames={existingNames}
         activeDay={activeDay}
       />
