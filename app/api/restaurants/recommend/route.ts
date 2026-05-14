@@ -49,6 +49,7 @@ export interface RecommendedRestaurant {
   food_type: string[];
   travel_theme: string[];
   description: string | null;
+  why_visit: string | null;
   recommended_menu: { name: string; korean_name: string }[];
   maps_url: string | null;
   foreigner_friendly: boolean | null;
@@ -70,7 +71,7 @@ export async function GET(request: NextRequest) {
   const districts = DISTRICT_BY_DAY[dayIndex];
 
   const SELECT_COLS =
-    "id, name, korean_name, district, neighborhood, food_type, travel_theme, description, recommended_menu, maps_url, foreigner_friendly, reservation_needed";
+    "id, name, korean_name, district, neighborhood, food_type, travel_theme, description, why_visit, recommended_menu, maps_url, foreigner_friendly, reservation_needed";
 
   // Primary query: city + district match, over-fetch for re-ranking
   let query = supabase
