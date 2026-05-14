@@ -269,8 +269,7 @@ function ErrorScreen({ message, onRetry }: { message: string; onRetry: () => voi
     <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
       <div className="mb-4 text-5xl">😓</div>
       <h3 className="mb-2 text-lg font-bold text-slate-800">Something went wrong</h3>
-      <p className="mb-3 text-sm text-slate-500 max-w-xs">Your plan couldn&apos;t be generated. Details below (please screenshot and share):</p>
-      <pre className="mb-6 w-full max-w-sm overflow-x-auto rounded-xl bg-slate-100 p-3 text-left text-[10px] text-slate-600 whitespace-pre-wrap break-all">{message}</pre>
+      <p className="mb-6 text-sm text-slate-500 max-w-xs">{message}</p>
       <button onClick={onRetry} className="rounded-xl bg-teal-600 px-6 py-3 font-semibold text-white transition hover:bg-teal-700">Try again</button>
     </div>
   );
@@ -350,7 +349,7 @@ export function TripPlannerFlow() {
     const ctrl = new AbortController();
     abortRef.current = ctrl;
 
-    const totalDays = Math.min(answers.days ?? 5, 5);
+    const totalDays = answers.days ?? 5;
 
     const fetchDay = async (day: number, isFirst: boolean) => {
       const res = await fetch("/api/generate-plan", {
@@ -360,14 +359,13 @@ export function TripPlannerFlow() {
         signal: ctrl.signal,
       });
       const rawText = await res.text();
-      if (!res.ok) throw new Error(`Day ${day} API error (${res.status}): ${rawText.slice(0, 300)}`);
+      if (!res.ok) throw new Error(`Could not generate day ${day}. Please try again.`);
       try {
         const parsed = JSON.parse(rawText) as unknown;
         setGenProgress((p) => Math.min(90, p + 90 / totalDays));
         return parsed;
-      } catch (parseErr) {
-        const msg = parseErr instanceof Error ? parseErr.message : String(parseErr);
-        throw new Error(`Day ${day} JSON invalid — ${msg} — raw: ${rawText.slice(0, 400)}`);
+      } catch {
+        throw new Error(`Could not generate day ${day}. Please try again.`);
       }
     };
 
