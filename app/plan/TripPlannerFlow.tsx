@@ -377,7 +377,12 @@ export function TripPlannerFlow() {
       clearInterval(progressTimerRef.current!);
       setGenProgress(100);
 
-      const parsed = JSON.parse(accumulated) as GeneratedPlan;
+      // Strip markdown fences if Claude wraps the JSON in ```json ... ```
+      let jsonStr = accumulated.trim();
+      if (jsonStr.startsWith("```")) {
+        jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+      }
+      const parsed = JSON.parse(jsonStr) as GeneratedPlan;
       setPlan(parsed);
       setCustomDays(null);
       // Small delay so the user sees 100% before transitioning
