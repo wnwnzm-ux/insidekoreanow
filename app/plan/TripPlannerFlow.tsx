@@ -538,6 +538,7 @@ export function TripPlannerFlow() {
               <PlanStep2
                 onBuildNow={() => startGeneration({})}
                 onCustomizeMore={(ext) => startGeneration(ext)}
+                onBack={() => { setStage("questions"); goToQStep(5); }}
               />
             )}
 

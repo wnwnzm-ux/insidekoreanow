@@ -6,6 +6,7 @@ import type { ExtendedAnswers } from "./types";
 interface Props {
   onBuildNow: () => void;
   onCustomizeMore: (extended: Partial<ExtendedAnswers>) => void;
+  onBack: () => void;
 }
 
 const DIETARY_OPTIONS = [
@@ -23,7 +24,7 @@ const TRANSPORT_OPTIONS = [
   { id: "mix", label: "Mix it up", desc: "Whatever works best each time", emoji: "🔀" },
 ];
 
-export function PlanStep2({ onBuildNow, onCustomizeMore }: Props) {
+export function PlanStep2({ onBuildNow, onCustomizeMore, onBack }: Props) {
   const [showExtra, setShowExtra] = useState(false);
   const [dietary, setDietary] = useState<string[]>([]);
   const [transport, setTransport] = useState("");
@@ -154,6 +155,16 @@ export function PlanStep2({ onBuildNow, onCustomizeMore }: Props) {
         >
           Build My Expert Plan →
         </button>
+
+        <button
+          onClick={() => setShowExtra(false)}
+          className="mt-3 flex w-full items-center justify-center gap-1.5 py-2 text-sm text-slate-400 hover:text-slate-600 transition-colors"
+        >
+          <svg className="size-3.5" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+          Back
+        </button>
       </div>
     );
   }
@@ -224,9 +235,15 @@ export function PlanStep2({ onBuildNow, onCustomizeMore }: Props) {
         </div>
       </button>
 
-      <p className="mt-4 text-center text-xs text-slate-400">
-        Curated by Korea insiders, not algorithms
-      </p>
+      <button
+        onClick={onBack}
+        className="mt-4 flex w-full items-center justify-center gap-1.5 py-2 text-sm text-slate-400 hover:text-slate-600 transition-colors"
+      >
+        <svg className="size-3.5" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+        </svg>
+        Back to questions
+      </button>
     </div>
   );
 }
