@@ -1,8 +1,77 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { GeneratedPlan, PlaceItem } from "./types";
-import { RestaurantSection } from "./RestaurantSection";
+import type { RecommendedRestaurant } from "@/app/api/restaurants/recommend/route";
+
+function MealPicks({ dayIndex, budget }: { dayIndex: number; budget: string }) {
+  const [meals, setMeals] = useState<RecommendedRestaurant[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    const params = new URLSearchParams({ city: "Seoul", day: String(dayIndex + 1), budget, limit: "2" });
+    fetch(`/api/restaurants/recommend?${params}`)
+      .then((r) => r.json())
+      .then((data: { restaurants: RecommendedRestaurant[] }) => { setMeals(data.restaurants ?? []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [dayIndex, budget]);
+
+  if (!loading && meals.length === 0) return null;
+
+  const MEAL_LABELS = ["Lunch", "Dinner"];
+  const THEME_BADGE: Record<string, { bg: string; text: string }> = {
+    "Michelin-listed": { bg: "bg-red-100", text: "text-red-700" },
+    "TV Feature": { bg: "bg-purple-100", text: "text-purple-700" },
+    "Hidden Gem": { bg: "bg-emerald-100", text: "text-emerald-700" },
+    "Foodie Favorite": { bg: "bg-orange-100", text: "text-orange-700" },
+  };
+
+  return (
+    <div className="mt-4 pl-3">
+      <div className="mb-2 flex items-center gap-1.5">
+        <span className="text-sm">🍽️</span>
+        <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Meal Picks</span>
+        <span className="text-[11px] text-slate-400 italic ml-1">from curated DB</span>
+      </div>
+      <div className="space-y-2">
+        {loading ? (
+          <>
+            <div className="h-14 rounded-xl bg-slate-100 animate-pulse" />
+            <div className="h-14 rounded-xl bg-slate-100 animate-pulse" />
+          </>
+        ) : meals.map((r, i) => {
+          const dish = r.recommended_menu?.[0];
+          const topTheme = (r.travel_theme ?? []).find((t) => t in THEME_BADGE);
+          const badge = topTheme ? THEME_BADGE[topTheme] : null;
+          return (
+            <div key={r.id} className="flex items-start justify-between gap-3 rounded-xl border border-slate-100 bg-white p-3 shadow-sm">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 rounded-full px-2 py-0.5">{MEAL_LABELS[i]}</span>
+                  <span className="font-semibold text-sm text-slate-800">{r.name}</span>
+                  {r.korean_name && <span className="text-[11px] text-slate-400">{r.korean_name}</span>}
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  {badge && topTheme && <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${badge.bg} ${badge.text}`}>{topTheme}</span>}
+                  {r.district && <span className="text-[11px] text-slate-400">📍 {r.district}</span>}
+                </div>
+                {dish && <p className="mt-1 text-xs text-slate-600"><span className="font-medium">Try:</span> {dish.name}{dish.korean_name && <span className="text-slate-400"> ({dish.korean_name})</span>}</p>}
+              </div>
+              {r.maps_url && (
+                <a href={r.maps_url} target="_blank" rel="noopener noreferrer"
+                  className="shrink-0 flex items-center gap-1 rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1.5 text-[11px] font-semibold text-teal-700 hover:bg-teal-100 transition-colors">
+                  <svg className="size-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
+                  Map
+                </a>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 type ShareState = "idle" | "saving" | "copied" | "error";
 
@@ -202,8 +271,8 @@ export function PlanStep3({ plan, onCustomize, budget = "mid" }: Props) {
             ))}
           </div>
 
-          {/* Restaurant recommendations from curated DB */}
-          <RestaurantSection dayIndex={activeDay} budget={budget} />
+          {/* Meal picks from curated DB */}
+          <MealPicks dayIndex={activeDay} budget={budget} />
         </>
       )}
 

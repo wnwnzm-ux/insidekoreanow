@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { CURATED_PLACES } from "./curatedPlaces";
 import type { PlaceItem } from "./types";
+import type { RecommendedRestaurant } from "@/app/api/restaurants/recommend/route";
 
 const CATEGORIES = [
   { id: "all", label: "All" },
@@ -18,11 +19,25 @@ interface Props {
   onClose: () => void;
   onAdd: (place: PlaceItem) => void;
   existingNames: Set<string>;
+  activeDay?: number; // 0-based day index for area-aware food recommendations
 }
 
-export function AddPlaceDrawer({ open, onClose, onAdd, existingNames }: Props) {
+export function AddPlaceDrawer({ open, onClose, onAdd, existingNames, activeDay = 0 }: Props) {
   const [category, setCategory] = useState("all");
   const [query, setQuery] = useState("");
+  const [dbFoods, setDbFoods] = useState<RecommendedRestaurant[]>([]);
+  const [dbLoading, setDbLoading] = useState(false);
+
+  // Fetch DB restaurants when Food tab is selected
+  useEffect(() => {
+    if (category !== "food") return;
+    setDbLoading(true);
+    const params = new URLSearchParams({ city: "Seoul", day: String(activeDay + 1), limit: "20" });
+    fetch(`/api/restaurants/recommend?${params}`)
+      .then((r) => r.json())
+      .then((data: { restaurants: RecommendedRestaurant[] }) => { setDbFoods(data.restaurants ?? []); setDbLoading(false); })
+      .catch(() => setDbLoading(false));
+  }, [category, activeDay]);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -45,6 +60,40 @@ export function AddPlaceDrawer({ open, onClose, onAdd, existingNames }: Props) {
     };
     onAdd(place);
   };
+
+  const handleAddDb = (r: RecommendedRestaurant) => {
+    const dish = r.recommended_menu?.[0];
+    const place: PlaceItem = {
+      id: `db_${r.id}_${Date.now()}`,
+      name: r.name,
+      category: "food",
+      neighborhood: r.district ?? r.neighborhood ?? "Seoul",
+      duration: "1 hour",
+      bestTime: "",
+      expertTip: dish ? `Try: ${dish.name}${dish.korean_name ? ` (${dish.korean_name})` : ""}` : (r.description ?? ""),
+      insiderNote: r.why_visit ?? undefined,
+      whyPicked: r.travel_theme?.[0] ?? undefined,
+      emoji: "🍽️",
+    };
+    onAdd(place);
+  };
+
+  const THEME_BADGE: Record<string, { bg: string; text: string }> = {
+    "Michelin-listed": { bg: "bg-red-100", text: "text-red-700" },
+    "TV Feature": { bg: "bg-purple-100", text: "text-purple-700" },
+    "Hidden Gem": { bg: "bg-emerald-100", text: "text-emerald-700" },
+    "Foodie Favorite": { bg: "bg-orange-100", text: "text-orange-700" },
+  };
+
+  const filteredDb = useMemo(() => {
+    const q = query.toLowerCase().trim();
+    if (!q) return dbFoods;
+    return dbFoods.filter((r) =>
+      r.name.toLowerCase().includes(q) ||
+      (r.korean_name ?? "").toLowerCase().includes(q) ||
+      (r.district ?? "").toLowerCase().includes(q)
+    );
+  }, [dbFoods, query]);
 
   return (
     <>
@@ -119,49 +168,80 @@ export function AddPlaceDrawer({ open, onClose, onAdd, existingNames }: Props) {
 
         {/* Place list */}
         <div className="flex-1 overflow-y-auto px-4 pb-6">
-          {filtered.length === 0 && (
-            <div className="py-12 text-center text-sm text-slate-400">
-              No places match your search.
-            </div>
+          {/* Food tab: show DB restaurants */}
+          {category === "food" ? (
+            dbLoading ? (
+              <div className="space-y-2 pt-2">
+                {[1,2,3].map((i) => <div key={i} className="h-16 rounded-xl bg-slate-100 animate-pulse" />)}
+              </div>
+            ) : filteredDb.length === 0 ? (
+              <div className="py-12 text-center text-sm text-slate-400">No restaurants found for this area.</div>
+            ) : (
+              <div className="space-y-2 pt-1">
+                <p className="text-[11px] text-slate-400 mb-2">
+                  Showing curated picks near <span className="font-semibold text-slate-600">Day {activeDay + 1}</span>&apos;s area
+                </p>
+                {filteredDb.map((r) => {
+                  const already = existingNames.has(r.name);
+                  const dish = r.recommended_menu?.[0];
+                  const topTheme = (r.travel_theme ?? []).find((t) => t in THEME_BADGE);
+                  const badge = topTheme ? THEME_BADGE[topTheme] : null;
+                  return (
+                    <div key={r.id} className="flex items-start gap-3 rounded-xl border border-slate-100 bg-white p-3 shadow-sm">
+                      <span className="text-xl shrink-0 mt-0.5">🍽️</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-1.5 flex-wrap">
+                          <p className="font-semibold text-sm text-slate-800">{r.name}</p>
+                          {r.korean_name && <span className="text-[11px] text-slate-400">{r.korean_name}</span>}
+                        </div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                          {badge && topTheme && <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${badge.bg} ${badge.text}`}>{topTheme}</span>}
+                          {r.district && <span className="text-[11px] text-slate-400">📍 {r.district}</span>}
+                        </div>
+                        {dish && <p className="mt-0.5 text-xs text-teal-700 truncate">Try: {dish.name}{dish.korean_name ? ` (${dish.korean_name})` : ""}</p>}
+                      </div>
+                      <button
+                        onClick={() => !already && handleAddDb(r)}
+                        disabled={already}
+                        className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${already ? "bg-slate-100 text-slate-400 cursor-default" : "bg-teal-600 text-white hover:bg-teal-700 active:scale-95"}`}
+                      >
+                        {already ? "✓ Added" : "+ Add"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          ) : (
+            /* Non-food tabs: use curatedPlaces as before */
+            <>
+              {filtered.length === 0 && (
+                <div className="py-12 text-center text-sm text-slate-400">No places match your search.</div>
+              )}
+              <div className="space-y-2">
+                {filtered.map((place) => {
+                  const already = existingNames.has(place.name);
+                  return (
+                    <div key={place.name} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 shadow-sm">
+                      <span className="text-2xl shrink-0">{place.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-slate-800 truncate">{place.name}</p>
+                        <p className="text-xs text-slate-500 truncate">📍 {place.neighborhood} · ⏱ {place.duration}</p>
+                        <p className="mt-0.5 text-xs text-teal-700 line-clamp-1">{place.expertTip}</p>
+                      </div>
+                      <button
+                        onClick={() => !already && handleAdd(place)}
+                        disabled={already}
+                        className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${already ? "bg-slate-100 text-slate-400 cursor-default" : "bg-teal-600 text-white hover:bg-teal-700 active:scale-95"}`}
+                      >
+                        {already ? "✓ Added" : "+ Add"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
-
-          <div className="space-y-2">
-            {filtered.map((place) => {
-              const already = existingNames.has(place.name);
-              return (
-                <div
-                  key={place.name}
-                  className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 shadow-sm"
-                >
-                  <span className="text-2xl shrink-0">{place.emoji}</span>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm text-slate-800 truncate">
-                      {place.name}
-                    </p>
-                    <p className="text-xs text-slate-500 truncate">
-                      📍 {place.neighborhood} · ⏱ {place.duration}
-                    </p>
-                    <p className="mt-0.5 text-xs text-teal-700 line-clamp-1">
-                      {place.expertTip}
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => !already && handleAdd(place)}
-                    disabled={already}
-                    className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                      already
-                        ? "bg-slate-100 text-slate-400 cursor-default"
-                        : "bg-teal-600 text-white hover:bg-teal-700 active:scale-95"
-                    }`}
-                  >
-                    {already ? "✓ Added" : "+ Add"}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
         </div>
       </div>
     </>

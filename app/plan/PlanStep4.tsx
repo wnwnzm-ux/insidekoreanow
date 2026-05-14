@@ -291,6 +291,7 @@ export function PlanStep4({ days, setDays, onBack }: Props) {
           setDrawerOpen(false);
         }}
         existingNames={existingNames}
+        activeDay={activeDay}
       />
     </>
   );
