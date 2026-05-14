@@ -377,11 +377,13 @@ export function TripPlannerFlow() {
       clearInterval(progressTimerRef.current!);
       setGenProgress(100);
 
-      // Strip markdown fences if Claude wraps the JSON in ```json ... ```
-      let jsonStr = accumulated.trim();
-      if (jsonStr.startsWith("```")) {
-        jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+      // Extract only the JSON object — handles any preamble text or markdown fences
+      const firstBrace = accumulated.indexOf("{");
+      const lastBrace = accumulated.lastIndexOf("}");
+      if (firstBrace === -1 || lastBrace === -1 || firstBrace >= lastBrace) {
+        throw new Error(`No valid JSON found in response. Got: ${accumulated.slice(0, 120)}`);
       }
+      const jsonStr = accumulated.slice(firstBrace, lastBrace + 1);
       const parsed = JSON.parse(jsonStr) as GeneratedPlan;
       setPlan(parsed);
       setCustomDays(null);
