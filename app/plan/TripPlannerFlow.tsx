@@ -341,7 +341,6 @@ export function TripPlannerFlow() {
     setError("");
     setGenProgress(0);
 
-    // Timer: asymptotically approach 90% while waiting for the stream
     if (progressTimerRef.current) clearInterval(progressTimerRef.current);
     progressTimerRef.current = setInterval(() => {
       setGenProgress((p) => p + (90 - p) * 0.07);
@@ -350,64 +349,55 @@ export function TripPlannerFlow() {
     const ctrl = new AbortController();
     abortRef.current = ctrl;
 
-    try {
+    const attempt = async (): Promise<GeneratedPlan> => {
       const res = await fetch("/api/generate-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ answers, extended: finalExtended }),
         signal: ctrl.signal,
       });
-
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
 
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
       let accumulated = "";
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         accumulated += decoder.decode(value, { stream: true });
-        // Boost progress slightly as chunks arrive (streaming is live)
         setGenProgress((p) => Math.min(92, p + 0.4));
       }
       accumulated += decoder.decode();
 
-      // Done — snap to 100%
-      clearInterval(progressTimerRef.current!);
-      setGenProgress(100);
-
-      // Restore the "{" that was used as assistant prefill (not included in stream output)
-      // then extract the JSON object robustly in case of any trailing text
       const full = "{" + accumulated;
       const lastBrace = full.lastIndexOf("}");
-      if (lastBrace === -1) {
-        throw new Error("Plan generation failed — please try again.");
-      }
+      if (lastBrace === -1) throw new Error("incomplete");
       const jsonStr = full.slice(0, lastBrace + 1);
+      return JSON.parse(jsonStr) as GeneratedPlan;
+    };
 
-      // Detect truncated JSON (unbalanced brackets mean the response was cut off)
-      let depth = 0;
-      let truncated = false;
-      for (const ch of jsonStr) {
-        if (ch === "{" || ch === "[") depth++;
-        else if (ch === "}" || ch === "]") depth--;
+    try {
+      let parsed: GeneratedPlan | null = null;
+      for (let i = 0; i < 3; i++) {
+        try {
+          parsed = await attempt();
+          break;
+        } catch (err) {
+          if ((err as Error).name === "AbortError") return;
+          if (i === 2) throw err;
+          // silent retry — reset progress
+          setGenProgress(0);
+        }
       }
-      if (depth !== 0) truncated = true;
-
-      if (truncated) {
-        throw new Error("Your plan was cut short. Try fewer days or tap Try again.");
-      }
-
-      const parsed = JSON.parse(jsonStr) as GeneratedPlan;
-      setPlan(parsed);
+      clearInterval(progressTimerRef.current!);
+      setGenProgress(100);
+      setPlan(parsed!);
       setCustomDays(null);
-      // Small delay so the user sees 100% before transitioning
       setTimeout(() => setStage("plan"), 500);
     } catch (err) {
       clearInterval(progressTimerRef.current!);
       if ((err as Error).name === "AbortError") return;
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError("Something went wrong generating your plan. Please try again.");
       setStage("generating");
     }
   };
