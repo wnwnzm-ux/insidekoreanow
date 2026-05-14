@@ -160,14 +160,14 @@ def main():
         batch_num = i // BATCH_SIZE + 1
 
         try:
-            client.table("restaurants").upsert(batch, on_conflict="slug").execute()
+            client.table("restaurants").insert(batch).execute()
             success += len(batch)
             print(f"Batch {batch_num}/{total_batches}: {len(batch)} rows OK  (total {success:,})")
         except Exception as bulk_err:
             print(f"Batch {batch_num} failed ({bulk_err}), retrying one-by-one …")
             for j, row in enumerate(batch):
                 try:
-                    client.table("restaurants").upsert([row], on_conflict="slug").execute()
+                    client.table("restaurants").insert([row]).execute()
                     success += 1
                 except Exception as row_err:
                     failed += 1
