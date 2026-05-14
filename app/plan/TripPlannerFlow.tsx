@@ -381,9 +381,23 @@ export function TripPlannerFlow() {
       const firstBrace = accumulated.indexOf("{");
       const lastBrace = accumulated.lastIndexOf("}");
       if (firstBrace === -1 || lastBrace === -1 || firstBrace >= lastBrace) {
-        throw new Error(`No valid JSON found in response. Got: ${accumulated.slice(0, 120)}`);
+        throw new Error("Plan generation failed — please try again.");
       }
       const jsonStr = accumulated.slice(firstBrace, lastBrace + 1);
+
+      // Detect truncated JSON (unbalanced brackets mean the response was cut off)
+      let depth = 0;
+      let truncated = false;
+      for (const ch of jsonStr) {
+        if (ch === "{" || ch === "[") depth++;
+        else if (ch === "}" || ch === "]") depth--;
+      }
+      if (depth !== 0) truncated = true;
+
+      if (truncated) {
+        throw new Error("Your plan was cut short. Try fewer days or tap Try again.");
+      }
+
       const parsed = JSON.parse(jsonStr) as GeneratedPlan;
       setPlan(parsed);
       setCustomDays(null);

@@ -43,6 +43,7 @@ ITINERARY RULES:
 3. Expert tips must name specific items, times, or techniques — never generic advice
 4. Each day should have a coherent geographic focus to avoid excessive travel
 5. Place IDs follow pattern d{day}_p{position} (e.g. d1_p1, d1_p2, d2_p1)
+6. Maximum 3 places per day — quality over quantity
 
 SEOUL NEIGHBOURHOOD GUIDE (use these exact names in the neighborhood field):
 - Jongno: Historic core of Seoul — Gyeongbokgung Palace, Bukchon Hanok Village, Insadong craft street, Ikseon-dong hanok bars, Changdeokgung, Tosokchon, Tongin Market, Ihwa Mural Village, Cheonggyecheon Stream starts here
@@ -138,7 +139,7 @@ PERSONALISATION RULES:
 - Budget: ${budgetRule}
 - Companion: ${companionRule}${answers.mustVisit ? "\n- Include must-visit requests in the most logical day" : ""}
 
-OUTPUT: Exactly ${days} day objects, exactly 4 place objects per day.`;
+OUTPUT: Exactly ${days} day objects, exactly 3 place objects per day.`;
 }
 
 export async function POST(request: NextRequest) {
@@ -152,7 +153,7 @@ export async function POST(request: NextRequest) {
 
   const anthropicStream = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 3000,
+    max_tokens: 5000,
     stream: true,
     system: [
       {
