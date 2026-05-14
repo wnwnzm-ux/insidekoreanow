@@ -14,6 +14,7 @@ const CATEGORY_STYLES: Record<string, { bg: string; text: string; label: string 
 function PlaceCard({ place, index }: { place: PlaceItem; index: number }) {
   const [expanded, setExpanded] = useState(false);
   const cat = CATEGORY_STYLES[place.category] ?? CATEGORY_STYLES.attraction;
+  const hasExpandable = !!place.insiderNote || !!place.whyPicked;
 
   return (
     <div className="relative rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:shadow-md">
@@ -38,23 +39,25 @@ function PlaceCard({ place, index }: { place: PlaceItem; index: number }) {
               </div>
             </div>
           </div>
-          <button
-            onClick={() => setExpanded((e) => !e)}
-            className="shrink-0 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
-            aria-label="Toggle details"
-          >
-            <svg
-              className={`size-4 transition-transform ${expanded ? "rotate-180" : ""}`}
-              viewBox="0 0 20 20"
-              fill="currentColor"
+          {hasExpandable && (
+            <button
+              onClick={() => setExpanded((e) => !e)}
+              className="shrink-0 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+              aria-label="Toggle details"
             >
-              <path
-                fillRule="evenodd"
-                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
+              <svg
+                className={`size-4 transition-transform ${expanded ? "rotate-180" : ""}`}
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Best time */}
@@ -74,29 +77,30 @@ function PlaceCard({ place, index }: { place: PlaceItem; index: number }) {
         </div>
 
         {/* Expandable section */}
-        {expanded && (
+        {expanded && hasExpandable && (
           <div className="mt-3 space-y-3 animate-slide-up">
-            {/* Insider note */}
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                <span className="text-sm">💡</span>
-                <span className="text-xs font-bold text-amber-800 uppercase tracking-wide">
-                  What tourists don&apos;t know
-                </span>
+            {place.insiderNote && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-sm">💡</span>
+                  <span className="text-xs font-bold text-amber-800 uppercase tracking-wide">
+                    What tourists don&apos;t know
+                  </span>
+                </div>
+                <p className="text-xs leading-relaxed text-amber-900">{place.insiderNote}</p>
               </div>
-              <p className="text-xs leading-relaxed text-amber-900">{place.insiderNote}</p>
-            </div>
-
-            {/* Why picked */}
-            <div className="rounded-xl bg-slate-50 p-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                <span className="text-sm">✓</span>
-                <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">
-                  Why we picked this for you
-                </span>
+            )}
+            {place.whyPicked && (
+              <div className="rounded-xl bg-slate-50 p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-sm">✓</span>
+                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">
+                    Why we picked this for you
+                  </span>
+                </div>
+                <p className="text-xs leading-relaxed text-slate-700">{place.whyPicked}</p>
               </div>
-              <p className="text-xs leading-relaxed text-slate-700">{place.whyPicked}</p>
-            </div>
+            )}
           </div>
         )}
       </div>

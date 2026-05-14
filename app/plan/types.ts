@@ -23,8 +23,8 @@ export interface PlaceItem {
   duration: string;
   bestTime: string;
   expertTip: string;
-  insiderNote: string;
-  whyPicked: string;
+  insiderNote?: string;
+  whyPicked?: string;
   emoji: string;
 }
 
