@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { GeneratedPlan, PlaceItem } from "./types";
+import { RestaurantSection } from "./RestaurantSection";
 
 type ShareState = "idle" | "saving" | "copied" | "error";
 
@@ -113,9 +114,10 @@ function PlaceCard({ place, index }: { place: PlaceItem; index: number }) {
 interface Props {
   plan: GeneratedPlan;
   onCustomize: () => void;
+  budget?: string;
 }
 
-export function PlanStep3({ plan, onCustomize }: Props) {
+export function PlanStep3({ plan, onCustomize, budget = "mid" }: Props) {
   const [activeDay, setActiveDay] = useState(0);
   const currentDay = plan.days[activeDay];
   const [shareState, setShareState] = useState<ShareState>("idle");
@@ -199,6 +201,9 @@ export function PlanStep3({ plan, onCustomize }: Props) {
               <PlaceCard key={place.id} place={place} index={i} />
             ))}
           </div>
+
+          {/* Restaurant recommendations from curated DB */}
+          <RestaurantSection dayIndex={activeDay} budget={budget} />
         </>
       )}
 
