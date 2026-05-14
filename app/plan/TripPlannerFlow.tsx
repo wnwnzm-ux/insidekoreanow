@@ -612,7 +612,7 @@ export function TripPlannerFlow() {
 
       {/* Hidden dev test button — loads mock plan without API call */}
       {stage === "questions" && (
-        <div className="pb-4 text-center">
+        <div className="pb-6 text-center">
           <button
             onClick={() => {
               setPlan(MOCK_PLAN);
@@ -620,9 +620,9 @@ export function TripPlannerFlow() {
               setCustomDays(null);
               setStage("plan");
             }}
-            className="text-[11px] text-slate-300 hover:text-slate-500 transition-colors select-none"
+            className="rounded px-3 py-1 text-[11px] text-slate-300 hover:text-slate-500 hover:bg-slate-100 transition-colors select-none"
           >
-            ·
+            dev
           </button>
         </div>
       )}
