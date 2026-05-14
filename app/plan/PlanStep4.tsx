@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { PlaceItem, DayPlan } from "./types";
 import type { RecommendedRestaurant } from "@/app/api/restaurants/recommend/route";
-import { MockMap } from "./MockMap";
+import { PlanMap } from "./PlanMap";
 import { AddPlaceDrawer } from "./AddPlaceDrawer";
 
 const CATEGORY_STYLES: Record<string, { bg: string; text: string }> = {
@@ -218,66 +218,106 @@ export function PlanStep4({ days, setDays, onBack, mealPicks }: Props) {
               </span>
             </div>
 
-            {/* Place rows */}
-            <div className="space-y-2">
-              {days[activeDay]?.places.map((place, pi) => (
-                <PlaceRow
-                  key={place.id}
-                  place={place}
-                  index={pi}
-                  total={days[activeDay].places.length}
-                  onMoveUp={() => movePlace(activeDay, pi, -1)}
-                  onMoveDown={() => movePlace(activeDay, pi, 1)}
-                  onDelete={() => deletePlace(activeDay, pi)}
-                  isHighlighted={highlightedId === place.id}
-                  onClick={() => setHighlightedId((id) => (id === place.id ? "" : place.id))}
-                />
-              ))}
-            </div>
+            {/* Interleaved place rows + meal picks */}
+            {(() => {
+              const places = days[activeDay]?.places ?? [];
+              const meals = mealPicks?.[activeDay] ?? [];
+              const lunchAfterIdx = Math.max(1, Math.ceil(places.length / 2));
+              const nodes: React.ReactNode[] = [];
+              let lunchInserted = false;
+              const MEAL_LABELS = ["Lunch", "Dinner"];
+              const MEAL_COLORS = [
+                { badge: "bg-amber-500", border: "border-amber-200", bg: "bg-amber-50" },
+                { badge: "bg-orange-600", border: "border-orange-200", bg: "bg-orange-50" },
+              ];
+
+              places.forEach((place, pi) => {
+                nodes.push(
+                  <PlaceRow
+                    key={place.id}
+                    place={place}
+                    index={pi}
+                    total={places.length}
+                    onMoveUp={() => movePlace(activeDay, pi, -1)}
+                    onMoveDown={() => movePlace(activeDay, pi, 1)}
+                    onDelete={() => deletePlace(activeDay, pi)}
+                    isHighlighted={highlightedId === place.id}
+                    onClick={() => setHighlightedId((id) => (id === place.id ? "" : place.id))}
+                  />
+                );
+                if (pi + 1 === lunchAfterIdx && meals[0]) {
+                  lunchInserted = true;
+                  const r = meals[0];
+                  const c = MEAL_COLORS[0];
+                  const dish = r.recommended_menu?.[0];
+                  nodes.push(
+                    <div key={`meal-0`} className={`flex items-center gap-3 rounded-xl border ${c.border} ${c.bg} p-3`}>
+                      <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${c.badge}`}>L</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-bold text-amber-700">{MEAL_LABELS[0]}</span>
+                          <span className="font-semibold text-sm text-slate-800 truncate">{r.name}</span>
+                          {r.korean_name && <span className="text-[11px] text-slate-400">{r.korean_name}</span>}
+                        </div>
+                        <p className="text-[11px] text-slate-500 truncate">🍽️ {r.district ?? "Seoul"}{dish ? ` · ${dish.name}` : ""}</p>
+                      </div>
+                      {r.maps_url && (
+                        <a href={r.maps_url} target="_blank" rel="noopener noreferrer"
+                          className="shrink-0 rounded-md border border-teal-200 bg-white px-2 py-1 text-[10px] font-semibold text-teal-700 hover:bg-teal-50 transition-colors">
+                          Map
+                        </a>
+                      )}
+                    </div>
+                  );
+                }
+              });
+
+              if (!lunchInserted && meals[0]) {
+                const r = meals[0];
+                const c = MEAL_COLORS[0];
+                const dish = r.recommended_menu?.[0];
+                nodes.push(
+                  <div key="meal-0" className={`flex items-center gap-3 rounded-xl border ${c.border} ${c.bg} p-3`}>
+                    <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${c.badge}`}>L</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-bold text-amber-700">Lunch</span>
+                        <span className="font-semibold text-sm text-slate-800 truncate">{r.name}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 truncate">🍽️ {r.district ?? "Seoul"}{dish ? ` · ${dish.name}` : ""}</p>
+                    </div>
+                    {r.maps_url && <a href={r.maps_url} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-md border border-teal-200 bg-white px-2 py-1 text-[10px] font-semibold text-teal-700 hover:bg-teal-50">Map</a>}
+                  </div>
+                );
+              }
+
+              if (meals[1]) {
+                const r = meals[1];
+                const c = MEAL_COLORS[1];
+                const dish = r.recommended_menu?.[0];
+                nodes.push(
+                  <div key="meal-1" className={`flex items-center gap-3 rounded-xl border ${c.border} ${c.bg} p-3`}>
+                    <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${c.badge}`}>D</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-bold text-orange-700">Dinner</span>
+                        <span className="font-semibold text-sm text-slate-800 truncate">{r.name}</span>
+                        {r.korean_name && <span className="text-[11px] text-slate-400">{r.korean_name}</span>}
+                      </div>
+                      <p className="text-[11px] text-slate-500 truncate">🍽️ {r.district ?? "Seoul"}{dish ? ` · ${dish.name}` : ""}</p>
+                    </div>
+                    {r.maps_url && <a href={r.maps_url} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-md border border-teal-200 bg-white px-2 py-1 text-[10px] font-semibold text-teal-700 hover:bg-teal-50">Map</a>}
+                  </div>
+                );
+              }
+
+              return <div className="space-y-2">{nodes}</div>;
+            })()}
 
             {/* Empty state */}
-            {days[activeDay]?.places.length === 0 && (
+            {(days[activeDay]?.places.length === 0) && (mealPicks?.[activeDay]?.length ?? 0) === 0 && (
               <div className="rounded-xl border-2 border-dashed border-slate-200 py-8 text-center text-sm text-slate-400">
                 All places removed. This day is free!
-              </div>
-            )}
-
-            {/* Meal picks from curated DB */}
-            {(mealPicks?.[activeDay]?.length ?? 0) > 0 && (
-              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                <div className="mb-2 flex items-center gap-1.5">
-                  <span className="text-sm">🍽️</span>
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Meal Picks</span>
-                </div>
-                <div className="space-y-2">
-                  {mealPicks![activeDay].map((r, i) => {
-                    const dish = r.recommended_menu?.[0];
-                    return (
-                      <div key={r.id} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-2.5">
-                        <span className={`flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${i === 0 ? "bg-amber-100 text-amber-700" : "bg-purple-100 text-purple-700"}`}>
-                          {i === 0 ? "L" : "D"}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-slate-500">{i === 0 ? "Lunch" : "Dinner"}</span>
-                            <span className="font-semibold text-sm text-slate-800 truncate">{r.name}</span>
-                            {r.korean_name && <span className="text-[11px] text-slate-400 truncate">{r.korean_name}</span>}
-                          </div>
-                          <p className="text-[11px] text-slate-400 truncate">
-                            📍 {r.district ?? r.neighborhood ?? "Seoul"}
-                            {dish && <> · {dish.name}</>}
-                          </p>
-                        </div>
-                        {r.maps_url && (
-                          <a href={r.maps_url} target="_blank" rel="noopener noreferrer"
-                            className="shrink-0 rounded-md border border-teal-200 bg-teal-50 px-2 py-1 text-[10px] font-semibold text-teal-700 hover:bg-teal-100 transition-colors">
-                            Map
-                          </a>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
               </div>
             )}
 
@@ -312,7 +352,7 @@ export function PlanStep4({ days, setDays, onBack, mealPicks }: Props) {
               Click a pin to highlight · dashed lines show daily route
             </p>
             <div className="flex-1 min-h-[360px]">
-              <MockMap
+              <PlanMap
                 days={days}
                 activeDay={activeDay + 1}
                 highlightedPlaceId={highlightedId}

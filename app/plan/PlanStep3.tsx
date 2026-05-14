@@ -4,97 +4,75 @@ import { useState, useEffect } from "react";
 import type { GeneratedPlan, PlaceItem } from "./types";
 import type { RecommendedRestaurant } from "@/app/api/restaurants/recommend/route";
 
-function MealPicks({
-  dayIndex, budget, initialMeals, onFetched,
-}: {
-  dayIndex: number;
-  budget: string;
-  initialMeals?: RecommendedRestaurant[];
-  onFetched?: (meals: RecommendedRestaurant[]) => void;
-}) {
-  const [meals, setMeals] = useState<RecommendedRestaurant[]>(initialMeals ?? []);
-  const [loading, setLoading] = useState(initialMeals === undefined);
+const THEME_BADGE: Record<string, { bg: string; text: string }> = {
+  "Michelin-listed": { bg: "bg-red-100", text: "text-red-700" },
+  "TV Feature": { bg: "bg-purple-100", text: "text-purple-700" },
+  "Hidden Gem": { bg: "bg-emerald-100", text: "text-emerald-700" },
+  "Foodie Favorite": { bg: "bg-orange-100", text: "text-orange-700" },
+};
 
-  useEffect(() => {
-    if (initialMeals !== undefined) {
-      setMeals(initialMeals);
-      setLoading(false);
-      return;
-    }
-    setMeals([]);
-    setLoading(true);
-    let cancelled = false;
-    const params = new URLSearchParams({ city: "Seoul", day: String(dayIndex + 1), budget, limit: "2" });
-    fetch(`/api/restaurants/recommend?${params}`)
-      .then((r) => r.json())
-      .then((data: { restaurants: RecommendedRestaurant[] }) => {
-        if (cancelled) return;
-        const fetched = data.restaurants ?? [];
-        setMeals(fetched);
-        setLoading(false);
-        onFetched?.(fetched);
-      })
-      .catch(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [dayIndex, budget, initialMeals]);
-
-  if (!loading && meals.length === 0) return null;
-
-  const MEAL_LABELS = ["Lunch", "Dinner"];
-  const THEME_BADGE: Record<string, { bg: string; text: string }> = {
-    "Michelin-listed": { bg: "bg-red-100", text: "text-red-700" },
-    "TV Feature": { bg: "bg-purple-100", text: "text-purple-700" },
-    "Hidden Gem": { bg: "bg-emerald-100", text: "text-emerald-700" },
-    "Foodie Favorite": { bg: "bg-orange-100", text: "text-orange-700" },
-  };
+function MealCard({ r, label }: { r: RecommendedRestaurant; label: "Lunch" | "Dinner" }) {
+  const dish = r.recommended_menu?.[0];
+  const topTheme = (r.travel_theme ?? []).find((t) => t in THEME_BADGE);
+  const badge = topTheme ? THEME_BADGE[topTheme] : null;
+  const isLunch = label === "Lunch";
 
   return (
-    <div className="mt-4 pl-3">
-      <div className="mb-2 flex items-center gap-1.5">
-        <span className="text-sm">🍽️</span>
-        <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Meal Picks</span>
-        <span className="text-[11px] text-slate-400 italic ml-1">from curated DB</span>
+    <div className="relative rounded-2xl border border-orange-100 bg-orange-50/60 shadow-sm">
+      <div className={`absolute -left-3 top-4 flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-bold text-white shadow-sm ${isLunch ? "bg-amber-500" : "bg-orange-600"}`}>
+        {label}
       </div>
-      <div className="space-y-2">
-        {loading ? (
-          <>
-            <div className="h-14 rounded-xl bg-slate-100 animate-pulse" />
-            <div className="h-14 rounded-xl bg-slate-100 animate-pulse" />
-          </>
-        ) : meals.map((r, i) => {
-          const dish = r.recommended_menu?.[0];
-          const topTheme = (r.travel_theme ?? []).find((t) => t in THEME_BADGE);
-          const badge = topTheme ? THEME_BADGE[topTheme] : null;
-          return (
-            <div key={r.id} className="flex items-start justify-between gap-3 rounded-xl border border-slate-100 bg-white p-3 shadow-sm">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 rounded-full px-2 py-0.5">{MEAL_LABELS[i]}</span>
-                  <span className="font-semibold text-sm text-slate-800">{r.name}</span>
-                  {r.korean_name && <span className="text-[11px] text-slate-400">{r.korean_name}</span>}
-                </div>
-                <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                  {badge && topTheme && <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${badge.bg} ${badge.text}`}>{topTheme}</span>}
-                  {r.district && <span className="text-[11px] text-slate-400">📍 {r.district}</span>}
-                </div>
-                {dish && <p className="mt-1 text-xs text-slate-600"><span className="font-medium">Try:</span> {dish.name}{dish.korean_name && <span className="text-slate-400"> ({dish.korean_name})</span>}</p>}
-              </div>
-              {r.maps_url && (
-                <a href={r.maps_url} target="_blank" rel="noopener noreferrer"
-                  className="shrink-0 flex items-center gap-1 rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1.5 text-[11px] font-semibold text-teal-700 hover:bg-teal-100 transition-colors">
-                  <svg className="size-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
-                  Map
-                </a>
-              )}
-            </div>
-          );
-        })}
+      <div className="flex items-start justify-between gap-3 p-4 pl-6">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xl leading-none">🍽️</span>
+            <h3 className="font-bold text-slate-800">{r.name}</h3>
+            {r.korean_name && <span className="text-xs text-slate-400">{r.korean_name}</span>}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            {badge && topTheme && (
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${badge.bg} ${badge.text}`}>
+                {topTheme}
+              </span>
+            )}
+            {r.district && <span className="text-xs text-slate-500">📍 {r.district}</span>}
+          </div>
+          {dish && (
+            <p className="mt-1 text-xs text-slate-600">
+              <span className="font-medium">Try:</span> {dish.name}
+              {dish.korean_name && <span className="text-slate-400"> ({dish.korean_name})</span>}
+            </p>
+          )}
+        </div>
+        {r.maps_url && (
+          <a
+            href={r.maps_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 flex items-center gap-1 rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1.5 text-[11px] font-semibold text-teal-700 hover:bg-teal-100 transition-colors"
+          >
+            <svg className="size-3" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+            </svg>
+            Map
+          </a>
+        )}
       </div>
     </div>
   );
 }
 
-type ShareState = "idle" | "saving" | "copied" | "error";
+function MealCardSkeleton({ label }: { label: string }) {
+  return (
+    <div className="relative rounded-2xl border border-orange-100 bg-orange-50/40 p-4 pl-6">
+      <div className="absolute -left-3 top-4 rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-bold text-white">
+        {label}
+      </div>
+      <div className="h-4 w-1/3 animate-pulse rounded-full bg-orange-100" />
+      <div className="mt-2 h-3 w-1/4 animate-pulse rounded-full bg-orange-50" />
+    </div>
+  );
+}
 
 const CATEGORY_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   food: { bg: "bg-orange-100", text: "text-orange-700", label: "Food" },
@@ -111,13 +89,11 @@ function PlaceCard({ place, index }: { place: PlaceItem; index: number }) {
 
   return (
     <div className="relative rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:shadow-md">
-      {/* Step number */}
       <div className="absolute -left-3 top-4 flex size-6 items-center justify-center rounded-full bg-teal-600 text-xs font-bold text-white shadow-sm">
         {index + 1}
       </div>
 
       <div className="p-4 pl-6">
-        {/* Header row */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-start gap-2">
             <span className="text-2xl leading-none">{place.emoji}</span>
@@ -138,30 +114,20 @@ function PlaceCard({ place, index }: { place: PlaceItem; index: number }) {
               className="shrink-0 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
               aria-label="Toggle details"
             >
-              <svg
-                className={`size-4 transition-transform ${expanded ? "rotate-180" : ""}`}
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
+              <svg className={`size-4 transition-transform ${expanded ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
             </button>
           )}
         </div>
 
-        {/* Best time */}
         <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
           <span>🕐</span>
           <span className="font-medium text-slate-600">{place.bestTime}</span>
         </div>
 
-        {/* Expert tip — always visible */}
         <div className="mt-3 rounded-xl bg-teal-50 p-3">
-          <div className="flex items-center gap-1.5 mb-1">
+          <div className="mb-1">
             <span className="inline-flex items-center gap-1 rounded-full bg-teal-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
               Expert Tip
             </span>
@@ -169,16 +135,13 @@ function PlaceCard({ place, index }: { place: PlaceItem; index: number }) {
           <p className="text-xs leading-relaxed text-teal-800">{place.expertTip}</p>
         </div>
 
-        {/* Expandable section */}
         {expanded && hasExpandable && (
           <div className="mt-3 space-y-3 animate-slide-up">
             {place.insiderNote && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
                 <div className="flex items-center gap-1.5 mb-1">
                   <span className="text-sm">💡</span>
-                  <span className="text-xs font-bold text-amber-800 uppercase tracking-wide">
-                    What tourists don&apos;t know
-                  </span>
+                  <span className="text-xs font-bold text-amber-800 uppercase tracking-wide">What tourists don&apos;t know</span>
                 </div>
                 <p className="text-xs leading-relaxed text-amber-900">{place.insiderNote}</p>
               </div>
@@ -187,9 +150,7 @@ function PlaceCard({ place, index }: { place: PlaceItem; index: number }) {
               <div className="rounded-xl bg-slate-50 p-3">
                 <div className="flex items-center gap-1.5 mb-1">
                   <span className="text-sm">✓</span>
-                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">
-                    Why we picked this for you
-                  </span>
+                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">Why we picked this for you</span>
                 </div>
                 <p className="text-xs leading-relaxed text-slate-700">{place.whyPicked}</p>
               </div>
@@ -200,6 +161,8 @@ function PlaceCard({ place, index }: { place: PlaceItem; index: number }) {
     </div>
   );
 }
+
+type ShareState = "idle" | "saving" | "copied" | "error";
 
 interface Props {
   plan: GeneratedPlan;
@@ -213,6 +176,28 @@ export function PlanStep3({ plan, onCustomize, budget = "mid", mealPicks, onMeal
   const [activeDay, setActiveDay] = useState(0);
   const currentDay = plan.days[activeDay];
   const [shareState, setShareState] = useState<ShareState>("idle");
+
+  const currentMeals = mealPicks?.[activeDay];
+  const [mealsLoading, setMealsLoading] = useState(currentMeals === undefined);
+
+  useEffect(() => {
+    if (currentMeals !== undefined) {
+      setMealsLoading(false);
+      return;
+    }
+    setMealsLoading(true);
+    let cancelled = false;
+    const params = new URLSearchParams({ city: "Seoul", day: String(activeDay + 1), budget, limit: "2" });
+    fetch(`/api/restaurants/recommend?${params}`)
+      .then((r) => r.json())
+      .then((data: { restaurants: RecommendedRestaurant[] }) => {
+        if (cancelled) return;
+        setMealsLoading(false);
+        onMealsFetched?.(activeDay, data.restaurants ?? []);
+      })
+      .catch(() => { if (!cancelled) setMealsLoading(false); });
+    return () => { cancelled = true; };
+  }, [activeDay, budget, currentMeals]);
 
   async function handleShare() {
     setShareState("saving");
@@ -234,27 +219,48 @@ export function PlanStep3({ plan, onCustomize, budget = "mid", mealPicks, onMeal
     }
   }
 
+  // Build interleaved list: places + meal picks in time order
+  function buildDayItems() {
+    if (!currentDay) return null;
+    const places = currentDay.places;
+    const meals = currentMeals ?? [];
+    const lunchAfterIdx = Math.max(1, Math.ceil(places.length / 2));
+    const nodes: React.ReactNode[] = [];
+    let lunchInserted = false;
+
+    places.forEach((place, i) => {
+      nodes.push(<PlaceCard key={place.id} place={place} index={i} />);
+      if (i + 1 === lunchAfterIdx) {
+        lunchInserted = true;
+        if (mealsLoading) nodes.push(<MealCardSkeleton key="l-skel" label="Lunch" />);
+        else if (meals[0]) nodes.push(<MealCard key={`l-${meals[0].id}`} r={meals[0]} label="Lunch" />);
+      }
+    });
+
+    if (!lunchInserted) {
+      if (mealsLoading) nodes.push(<MealCardSkeleton key="l-skel" label="Lunch" />);
+      else if (meals[0]) nodes.push(<MealCard key={`l-${meals[0].id}`} r={meals[0]} label="Lunch" />);
+    }
+
+    if (mealsLoading) nodes.push(<MealCardSkeleton key="d-skel" label="Dinner" />);
+    else if (meals[1]) nodes.push(<MealCard key={`d-${meals[1].id}`} r={meals[1]} label="Dinner" />);
+
+    return nodes;
+  }
+
   return (
     <div className="animate-slide-up">
       {/* Plan hero */}
       <div className="mb-6 rounded-2xl bg-gradient-to-br from-teal-600 to-teal-800 p-6 text-white">
         <div className="mb-2 flex items-center gap-2">
-          <span className="rounded-full bg-teal-500/40 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider">
-            Your Expert Plan
-          </span>
-          <span className="rounded-full bg-teal-500/40 px-2.5 py-0.5 text-xs font-medium">
-            {plan.days.length} days
-          </span>
+          <span className="rounded-full bg-teal-500/40 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider">Your Expert Plan</span>
+          <span className="rounded-full bg-teal-500/40 px-2.5 py-0.5 text-xs font-medium">{plan.days.length} days</span>
         </div>
         <h2 className="text-xl font-bold leading-snug">{plan.title}</h2>
         <p className="mt-2 text-sm leading-relaxed text-teal-100">{plan.overview}</p>
-
-        {/* Expert note */}
         <div className="mt-4 flex gap-2.5 rounded-xl bg-teal-700/50 p-3">
           <span className="text-xl shrink-0">👨‍💼</span>
-          <p className="text-xs leading-relaxed text-teal-100 italic">
-            &ldquo;{plan.expertNote}&rdquo;
-          </p>
+          <p className="text-xs leading-relaxed text-teal-100 italic">&ldquo;{plan.expertNote}&rdquo;</p>
         </div>
       </div>
 
@@ -266,9 +272,7 @@ export function PlanStep3({ plan, onCustomize, budget = "mid", mealPicks, onMeal
               key={day.day}
               onClick={() => setActiveDay(i)}
               className={`shrink-0 rounded-xl px-3.5 py-2 text-sm font-semibold transition-all ${
-                activeDay === i
-                  ? "bg-teal-600 text-white shadow-sm"
-                  : "bg-slate-100 text-slate-600 hover:bg-teal-50 hover:text-teal-700"
+                activeDay === i ? "bg-teal-600 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-teal-50 hover:text-teal-700"
               }`}
             >
               Day {day.day}
@@ -287,24 +291,14 @@ export function PlanStep3({ plan, onCustomize, budget = "mid", mealPicks, onMeal
             <h3 className="font-bold text-slate-800">{currentDay.theme}</h3>
           </div>
 
-          {/* Place cards */}
+          {/* Interleaved place cards + meal picks */}
           <div className="space-y-4 pl-3">
-            {currentDay.places.map((place, i) => (
-              <PlaceCard key={place.id} place={place} index={i} />
-            ))}
+            {buildDayItems()}
           </div>
-
-          {/* Meal picks from curated DB */}
-          <MealPicks
-            dayIndex={activeDay}
-            budget={budget}
-            initialMeals={mealPicks?.[activeDay]}
-            onFetched={(meals) => onMealsFetched?.(activeDay, meals)}
-          />
         </>
       )}
 
-      {/* Pagination — prev/next day */}
+      {/* Pagination */}
       <div className="mt-6 flex items-center justify-between">
         <button
           onClick={() => setActiveDay((d) => Math.max(0, d - 1))}
@@ -330,17 +324,10 @@ export function PlanStep3({ plan, onCustomize, budget = "mid", mealPicks, onMeal
 
       {/* CTA */}
       <div className="mt-6 rounded-2xl border-2 border-dashed border-teal-200 bg-teal-50 p-5 text-center">
-        <p className="mb-1 text-sm font-semibold text-teal-800">
-          Love the plan? Make it yours.
-        </p>
-        <p className="mb-4 text-xs text-teal-600">
-          Remove places you don&apos;t want, add your own, reorder by day — or share with your travel crew.
-        </p>
+        <p className="mb-1 text-sm font-semibold text-teal-800">Love the plan? Make it yours.</p>
+        <p className="mb-4 text-xs text-teal-600">Remove places you don&apos;t want, add your own, reorder by day — or share with your travel crew.</p>
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <button
-            onClick={onCustomize}
-            className="rounded-xl bg-teal-600 px-6 py-3 font-semibold text-white transition hover:bg-teal-700"
-          >
+          <button onClick={onCustomize} className="rounded-xl bg-teal-600 px-6 py-3 font-semibold text-white transition hover:bg-teal-700">
             Customize This Plan →
           </button>
           <button
