@@ -45,6 +45,11 @@ const DAY_AREAS = [
   "Gangnam / Sinsa / upscale south of river",
   "Itaewon / Namsan / international hub",
   "Seongsu-dong / Euljiro / creative east Seoul",
+  "Myeongdong / Namdaemun / bustling city centre",
+  "Yeouido / Han River parks / Noryangjin fish market",
+  "Jamsil / Olympic Park / Seokchon Lake",
+  "Dongdaemun / Wangsimni / night fashion district",
+  "Mangwon / Hapjeong / local café culture west Seoul",
 ];
 
 const PURPOSE_LABELS: Record<string, string> = {
@@ -86,7 +91,7 @@ export async function POST(request: NextRequest) {
     };
     const { answers, extended, day, totalDays, isFirst } = body;
 
-    const area = DAY_AREAS[day - 1] ?? DAY_AREAS[0];
+    const area = DAY_AREAS[(day - 1) % DAY_AREAS.length];
     const extras = extended
       ? [
           extended.dietary?.length ? `dietary: ${extended.dietary.join(", ")}` : null,
@@ -110,7 +115,7 @@ Generate Day ${day} with 3 places. Different area from previous days.`;
 
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 1200,
+      max_tokens: isFirst ? 1000 : 800,
       system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages: [
         { role: "user", content: userMessage },
