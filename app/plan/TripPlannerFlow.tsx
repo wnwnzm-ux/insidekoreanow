@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type {
   TripAnswers,
   ExtendedAnswers,
@@ -334,7 +334,7 @@ export function TripPlannerFlow() {
     bumpAnim();
   };
 
-  const startGeneration = async (ext?: Partial<ExtendedAnswers>) => {
+  const startGeneration = useCallback(async (ext?: Partial<ExtendedAnswers>) => {
     const finalExtended = ext ?? extended;
     setExtended(finalExtended);
     setStage("generating");
@@ -343,55 +343,46 @@ export function TripPlannerFlow() {
 
     if (progressTimerRef.current) clearInterval(progressTimerRef.current);
     progressTimerRef.current = setInterval(() => {
-      setGenProgress((p) => p + (90 - p) * 0.07);
-    }, 400);
+      setGenProgress((p) => p + (90 - p) * 0.06);
+    }, 300);
 
     const ctrl = new AbortController();
     abortRef.current = ctrl;
 
-    const attempt = async (): Promise<GeneratedPlan> => {
+    const totalDays = Math.min(answers.days ?? 5, 5);
+
+    const fetchDay = async (day: number, isFirst: boolean) => {
       const res = await fetch("/api/generate-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers, extended: finalExtended }),
+        body: JSON.stringify({ answers, extended: finalExtended, day, totalDays, isFirst }),
         signal: ctrl.signal,
       });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-
-      const reader = res.body!.getReader();
-      const decoder = new TextDecoder();
-      let accumulated = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        accumulated += decoder.decode(value, { stream: true });
-        setGenProgress((p) => Math.min(92, p + 0.4));
-      }
-      accumulated += decoder.decode();
-
-      const full = "{" + accumulated;
-      const lastBrace = full.lastIndexOf("}");
-      if (lastBrace === -1) throw new Error("incomplete");
-      const jsonStr = full.slice(0, lastBrace + 1);
-      return JSON.parse(jsonStr) as GeneratedPlan;
+      if (!res.ok) throw new Error(`Day ${day} failed (${res.status})`);
+      // bump progress as each day arrives
+      setGenProgress((p) => Math.min(90, p + 90 / totalDays));
+      return res.json();
     };
 
     try {
-      let parsed: GeneratedPlan | null = null;
-      for (let i = 0; i < 3; i++) {
-        try {
-          parsed = await attempt();
-          break;
-        } catch (err) {
-          if ((err as Error).name === "AbortError") return;
-          if (i === 2) throw err;
-          // silent retry — reset progress
-          setGenProgress(0);
-        }
-      }
+      // All days in parallel — each takes ~2-3s, well within 10s limit
+      const results = await Promise.all(
+        Array.from({ length: totalDays }, (_, i) => fetchDay(i + 1, i === 0))
+      );
+
       clearInterval(progressTimerRef.current!);
       setGenProgress(100);
-      setPlan(parsed!);
+
+      type FirstDay = { title: string; overview: string; expertNote: string; day: DayPlan };
+      const first = results[0] as FirstDay;
+      const assembled: GeneratedPlan = {
+        title: first.title ?? "Your Korea Itinerary",
+        overview: first.overview ?? "",
+        expertNote: first.expertNote ?? "",
+        days: results.map((r, i) => (i === 0 ? first.day : (r as DayPlan))),
+      };
+
+      setPlan(assembled);
       setCustomDays(null);
       setTimeout(() => setStage("plan"), 500);
     } catch (err) {
@@ -400,7 +391,7 @@ export function TripPlannerFlow() {
       setError("Something went wrong generating your plan. Please try again.");
       setStage("generating");
     }
-  };
+  }, [answers, extended]);
 
   // Days used in Step 4: prefer customised version, else fall back to plan
   const activeDays = customDays ?? plan?.days ?? [];
