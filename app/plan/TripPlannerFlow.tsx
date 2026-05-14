@@ -216,19 +216,38 @@ function StepMustVisit({ value, onChange, onSubmit }: { value: string; onChange:
 
 // ── Loading / Error screens ───────────────────────────────────────────────────────
 
-function GeneratingScreen() {
+function GeneratingScreen({ progress }: { progress: number }) {
   const [msgIdx, setMsgIdx] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setMsgIdx((i) => (i + 1) % LOADING_MESSAGES.length), 2200);
     return () => clearInterval(t);
   }, []);
+
+  const pct = Math.round(progress);
+
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+      {/* Spinner with % inside */}
       <div className="relative mb-8">
         <div className="size-20 rounded-full border-4 border-teal-100" />
         <div className="absolute inset-0 size-20 rounded-full border-4 border-transparent border-t-teal-600 animate-spin" />
-        <div className="absolute inset-0 flex items-center justify-center text-3xl">🇰🇷</div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-sm font-bold text-teal-700">{pct}%</span>
+        </div>
       </div>
+
+      {/* Progress bar */}
+      <div className="mb-6 w-full max-w-sm">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-teal-100">
+          <div
+            className="h-2 rounded-full bg-teal-500 transition-all duration-500 ease-out"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <p className="mt-2 text-right text-xs text-slate-400">{pct}% complete</p>
+      </div>
+
+      {/* Skeleton bars */}
       <div className="mb-8 w-full max-w-sm space-y-3">
         <div className="h-4 w-3/4 mx-auto rounded-full bg-teal-100 animate-pulse" />
         <div className="h-3 w-full rounded-full bg-slate-100 animate-pulse" />
@@ -238,6 +257,7 @@ function GeneratingScreen() {
         <div className="h-3 w-full rounded-full bg-slate-100 animate-pulse" />
         <div className="h-3 w-5/6 rounded-full bg-slate-100 animate-pulse" />
       </div>
+
       <p className="text-base font-semibold text-teal-700">{LOADING_MESSAGES[msgIdx]}</p>
       <p className="mt-2 text-sm text-slate-400">Your expert itinerary is being crafted</p>
     </div>
@@ -279,8 +299,10 @@ export function TripPlannerFlow() {
     return loadSaved()?.customDays ?? null;
   });
   const [error, setError] = useState<string>("");
+  const [genProgress, setGenProgress] = useState(0);
 
   const abortRef = useRef<AbortController | null>(null);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Persist to localStorage on every relevant change ──────────────────────────
   useEffect(() => {
@@ -317,6 +339,13 @@ export function TripPlannerFlow() {
     setExtended(finalExtended);
     setStage("generating");
     setError("");
+    setGenProgress(0);
+
+    // Timer: asymptotically approach 90% while waiting for the stream
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    progressTimerRef.current = setInterval(() => {
+      setGenProgress((p) => p + (90 - p) * 0.07);
+    }, 400);
 
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -339,15 +368,22 @@ export function TripPlannerFlow() {
         const { done, value } = await reader.read();
         if (done) break;
         accumulated += decoder.decode(value, { stream: true });
+        // Boost progress slightly as chunks arrive (streaming is live)
+        setGenProgress((p) => Math.min(92, p + 0.4));
       }
       accumulated += decoder.decode();
 
+      // Done — snap to 100%
+      clearInterval(progressTimerRef.current!);
+      setGenProgress(100);
+
       const parsed = JSON.parse(accumulated) as GeneratedPlan;
       setPlan(parsed);
-      // Reset customDays so Step 4 starts fresh from the new plan
       setCustomDays(null);
-      setStage("plan");
+      // Small delay so the user sees 100% before transitioning
+      setTimeout(() => setStage("plan"), 500);
     } catch (err) {
+      clearInterval(progressTimerRef.current!);
       if ((err as Error).name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setStage("generating");
@@ -460,7 +496,7 @@ export function TripPlannerFlow() {
           {error ? (
             <ErrorScreen message={error} onRetry={() => startGeneration(extended)} />
           ) : (
-            <GeneratingScreen />
+            <GeneratingScreen progress={genProgress} />
           )}
         </div>
       )}
