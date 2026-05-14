@@ -555,6 +555,7 @@ export function TripPlannerFlow() {
               <PlanStep3
                 plan={{ ...plan, days: activeDays }}
                 onCustomize={() => setStage("customize")}
+                budget={answers.budget}
               />
             )}
           </div>
