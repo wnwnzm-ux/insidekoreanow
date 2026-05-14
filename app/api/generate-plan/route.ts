@@ -2,6 +2,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { NextRequest } from "next/server";
 import type { TripAnswers, ExtendedAnswers } from "@/app/plan/types";
 
+export const runtime = "edge";
+
 const PURPOSE_LABELS: Record<string, string> = {
   kpop: "K-pop Pilgrimage (idol agencies, concert venues, fan cafes, merch shops)",
   food: "Food Adventure (street food markets, traditional cuisine, trendy restaurants)",
@@ -44,56 +46,52 @@ function buildPrompt(answers: TripAnswers, extended?: Partial<ExtendedAnswers>):
         .join("\n- ")
     : null;
 
-  return `You are a Korea travel expert who has lived in Seoul for 10 years with deep insider knowledge of every neighbourhood. Create a highly personalised ${days}-day Korea itinerary for this traveller.
+  return `You are a Korea travel expert. Create a personalised ${days}-day Korea itinerary.
 
 TRAVELLER PROFILE:
 - Main goal: ${PURPOSE_LABELS[answers.purpose] ?? answers.purpose}
 - Travel style: ${STYLE_LABELS[answers.style] ?? answers.style}
 - Travelling with: ${COMPANION_LABELS[answers.companion] ?? answers.companion}
-- Duration: ${answers.days} days${answers.days > 7 ? " (plan the first 7 days in detail)" : ""}
+- Duration: ${answers.days} days${answers.days > 7 ? " (plan the first 7 days)" : ""}
 - Daily budget: ${BUDGET_LABELS[answers.budget] ?? answers.budget}
-- Must-visit requests: ${answers.mustVisit || "none specified"}${extras ? `\n- ${extras}` : ""}
+- Must-visit: ${answers.mustVisit || "none"}${extras ? `\n- ${extras}` : ""}
 
-Return ONLY a valid JSON object — absolutely no markdown fences, no explanation before or after, no trailing text. Start your response with { and end with }.
-
-Use this exact JSON structure:
+Return ONLY valid JSON — no markdown, no extra text. Start with { end with }.
 
 {
-  "title": "Catchy trip title in 6 words or fewer",
-  "overview": "2–3 sentences describing this curated itinerary and why it fits them perfectly",
-  "expertNote": "A warm 1–2 sentence personal message from you as their Korea insider, explaining your curation philosophy for their specific trip",
+  "title": "Trip title, 6 words max",
+  "overview": "2 sentences: what this itinerary covers and why it fits this traveller",
+  "expertNote": "1 sentence personal message as their Korea insider",
   "days": [
     {
       "day": 1,
-      "theme": "Evocative day title (e.g. 'Old Seoul & Hidden Alleys')",
+      "theme": "Day title (e.g. 'Old Seoul & Hidden Alleys')",
       "places": [
         {
           "id": "d1_p1",
-          "name": "Exact English name of place",
+          "name": "Place name in English",
           "category": "food OR attraction OR shopping OR cafe OR neighborhood",
-          "neighborhood": "Seoul district name (e.g. Jongno, Hongdae, Gangnam-gu)",
+          "neighborhood": "Seoul district (e.g. Jongno, Hongdae, Gangnam-gu)",
           "duration": "X hours",
-          "bestTime": "Specific best time (e.g. 'Weekday 9–11am before crowds', 'Golden hour 5–6pm')",
-          "expertTip": "One hyper-specific, actionable insider tip — exact stall number, what to order by name, hidden entrance, which staff member to ask",
-          "insiderNote": "What 95% of tourists completely miss — genuine local knowledge that changes the experience",
-          "whyPicked": "One sentence: why this exact place for this specific traveller profile",
-          "emoji": "one relevant emoji"
+          "bestTime": "Best time to visit, 10 words max",
+          "expertTip": "Specific insider tip: exact item, stall, or technique, 20 words max",
+          "insiderNote": "What tourists miss, genuine local insight, 20 words max",
+          "whyPicked": "Why this place for this traveller, 15 words max",
+          "emoji": "one emoji"
         }
       ]
     }
   ]
 }
 
-Rules (follow precisely):
-1. Include exactly ${days} day objects
-2. Include 4–5 place objects per day
-3. Sequence places geographically within each day to minimise travel time
-4. Naturally weave in meal stops (breakfast, lunch, dinner) across each day
-5. Expert tips must name specific items, stalls, times, or techniques — no generic advice
-6. Insider notes must reveal something the average tourist truly doesn't know
-7. Budget rule: ${answers.budget === "budget" ? "prioritise free attractions; food under ₩15,000 per meal; no paid tours" : answers.budget === "luxury" ? "premium dining (₩80,000+ per meal), private tours, exclusive venues, rooftop experiences" : "mix paid attractions (₩10,000–30,000) with free spots; mid-range dining ₩15,000–50,000"}
-8. Companion rule: ${answers.companion === "family" ? "every place must be child-friendly with age-appropriate activities" : answers.companion === "couple" ? "prioritise romantic settings, intimate restaurants, scenic couples' spots" : answers.companion === "solo" ? "include social-friendly places, solo-safe areas, traveller meetup spots" : "group-friendly venues, sharable food experiences, activities 3+ people enjoy"}
-${answers.mustVisit ? "9. Incorporate the must-visit requests into the most logically appropriate day" : ""}`;
+Rules:
+1. Exactly ${days} day objects
+2. Exactly 4 place objects per day
+3. Sequence places geographically to minimise travel time
+4. Include meal stops naturally across each day
+5. Budget: ${answers.budget === "budget" ? "free attractions; food under ₩15,000 per meal" : answers.budget === "luxury" ? "premium dining ₩80,000+, private tours, exclusive venues" : "mix paid (₩10,000–30,000) with free; dining ₩15,000–50,000"}
+6. Companion: ${answers.companion === "family" ? "child-friendly, all ages" : answers.companion === "couple" ? "romantic settings, intimate spots" : answers.companion === "solo" ? "social-friendly, solo-safe areas" : "group-friendly, sharable experiences"}
+${answers.mustVisit ? "7. Include must-visit requests in the most logical day" : ""}`;
 }
 
 export async function POST(request: NextRequest) {
@@ -105,26 +103,28 @@ export async function POST(request: NextRequest) {
 
   const client = new Anthropic();
 
-  const messageStream = client.messages.stream({
+  const anthropicStream = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 8000,
+    max_tokens: 5000,
+    stream: true,
     messages: [{ role: "user", content: buildPrompt(answers, extended) }],
   });
 
   const readable = new ReadableStream({
-    start(controller) {
-      messageStream.on("text", (text) => {
-        controller.enqueue(new TextEncoder().encode(text));
-      });
-      messageStream.on("error", (err) => {
-        controller.error(err);
-      });
-      messageStream.finalMessage().then(() => {
+    async start(controller) {
+      try {
+        for await (const event of anthropicStream) {
+          if (
+            event.type === "content_block_delta" &&
+            event.delta.type === "text_delta"
+          ) {
+            controller.enqueue(new TextEncoder().encode(event.delta.text));
+          }
+        }
         controller.close();
-      });
-    },
-    cancel() {
-      messageStream.abort();
+      } catch (err) {
+        controller.error(err);
+      }
     },
   });
 
