@@ -2,6 +2,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { NextRequest } from "next/server";
 import type { TripAnswers, ExtendedAnswers } from "@/app/plan/types";
 
+export const maxDuration = 60;
+
 // ── Static system prompt (cached) ────────────────────────────────────────────
 // This content never changes between requests so Anthropic caches it after the
 // first call, reducing input-token cost by ~90% on subsequent requests.
@@ -163,7 +165,10 @@ export async function POST(request: NextRequest) {
         cache_control: { type: "ephemeral" },
       },
     ],
-    messages: [{ role: "user", content: buildUserMessage(answers, extended) }],
+    messages: [
+      { role: "user", content: buildUserMessage(answers, extended) },
+      { role: "assistant", content: "{" },
+    ],
   });
 
   const readable = new ReadableStream({
