@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import type { GeneratedPlan } from "@/app/plan/types";
 
 export async function POST(request: NextRequest) {
@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
 
   const id = crypto.randomUUID().replace(/-/g, "").slice(0, 10);
 
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from("plans")
     .insert({ id, plan_json: plan });
 

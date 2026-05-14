@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import type { GeneratedPlan } from "@/app/plan/types";
 import { SharedPlanView } from "./SharedPlanView";
 
 type Props = { params: Promise<{ id: string }> };
 
 async function fetchPlan(id: string): Promise<GeneratedPlan | null> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("plans")
     .select("plan_json")
     .eq("id", id)
