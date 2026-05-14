@@ -377,13 +377,14 @@ export function TripPlannerFlow() {
       clearInterval(progressTimerRef.current!);
       setGenProgress(100);
 
-      // Extract only the JSON object — handles any preamble text or markdown fences
-      const firstBrace = accumulated.indexOf("{");
-      const lastBrace = accumulated.lastIndexOf("}");
-      if (firstBrace === -1 || lastBrace === -1 || firstBrace >= lastBrace) {
+      // Restore the "{" that was used as assistant prefill (not included in stream output)
+      // then extract the JSON object robustly in case of any trailing text
+      const full = "{" + accumulated;
+      const lastBrace = full.lastIndexOf("}");
+      if (lastBrace === -1) {
         throw new Error("Plan generation failed — please try again.");
       }
-      const jsonStr = accumulated.slice(firstBrace, lastBrace + 1);
+      const jsonStr = full.slice(0, lastBrace + 1);
 
       // Detect truncated JSON (unbalanced brackets mean the response was cut off)
       let depth = 0;
