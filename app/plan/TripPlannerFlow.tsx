@@ -620,7 +620,7 @@ export function TripPlannerFlow() {
               setCustomDays(null);
               setStage("plan");
             }}
-            className="text-[10px] text-slate-200 hover:text-slate-400 transition-colors"
+            className="text-[11px] text-slate-300 hover:text-slate-500 transition-colors select-none"
           >
             ·
           </button>
