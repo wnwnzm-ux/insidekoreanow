@@ -11,6 +11,7 @@ import type {
 import { PlanStep2 } from "./PlanStep2";
 import { PlanStep3 } from "./PlanStep3";
 import { PlanStep4 } from "./PlanStep4";
+import type { RecommendedRestaurant } from "@/app/api/restaurants/recommend/route";
 
 // ── localStorage ─────────────────────────────────────────────────────────────────
 
@@ -334,6 +335,11 @@ export function TripPlannerFlow() {
   });
   const [error, setError] = useState<string>("");
   const [genProgress, setGenProgress] = useState(0);
+  const [mealPicks, setMealPicks] = useState<Record<number, RecommendedRestaurant[]>>({});
+
+  const handleMealsFetched = useCallback((day: number, meals: RecommendedRestaurant[]) => {
+    setMealPicks((prev) => ({ ...prev, [day]: meals }));
+  }, []);
 
   const abortRef = useRef<AbortController | null>(null);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -364,6 +370,7 @@ export function TripPlannerFlow() {
     setExtended({});
     setPlan(null);
     setCustomDays(null);
+    setMealPicks({});
     setError("");
     bumpAnim();
   };
@@ -374,6 +381,7 @@ export function TripPlannerFlow() {
     setStage("generating");
     setError("");
     setGenProgress(0);
+    setMealPicks({});
 
     if (progressTimerRef.current) clearInterval(progressTimerRef.current);
     progressTimerRef.current = setInterval(() => {
@@ -528,6 +536,7 @@ export function TripPlannerFlow() {
             days={activeDays}
             setDays={setActiveDays}
             onBack={() => setStage("plan")}
+            mealPicks={mealPicks}
           />
         </div>
       )}
@@ -590,6 +599,8 @@ export function TripPlannerFlow() {
                 plan={{ ...plan, days: activeDays }}
                 onCustomize={() => setStage("customize")}
                 budget={answers.budget}
+                mealPicks={mealPicks}
+                onMealsFetched={handleMealsFetched}
               />
             )}
           </div>

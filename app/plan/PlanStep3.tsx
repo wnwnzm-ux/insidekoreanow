@@ -4,18 +4,39 @@ import { useState, useEffect } from "react";
 import type { GeneratedPlan, PlaceItem } from "./types";
 import type { RecommendedRestaurant } from "@/app/api/restaurants/recommend/route";
 
-function MealPicks({ dayIndex, budget }: { dayIndex: number; budget: string }) {
-  const [meals, setMeals] = useState<RecommendedRestaurant[]>([]);
-  const [loading, setLoading] = useState(true);
+function MealPicks({
+  dayIndex, budget, initialMeals, onFetched,
+}: {
+  dayIndex: number;
+  budget: string;
+  initialMeals?: RecommendedRestaurant[];
+  onFetched?: (meals: RecommendedRestaurant[]) => void;
+}) {
+  const [meals, setMeals] = useState<RecommendedRestaurant[]>(initialMeals ?? []);
+  const [loading, setLoading] = useState(initialMeals === undefined);
 
   useEffect(() => {
+    if (initialMeals !== undefined) {
+      setMeals(initialMeals);
+      setLoading(false);
+      return;
+    }
+    setMeals([]);
     setLoading(true);
+    let cancelled = false;
     const params = new URLSearchParams({ city: "Seoul", day: String(dayIndex + 1), budget, limit: "2" });
     fetch(`/api/restaurants/recommend?${params}`)
       .then((r) => r.json())
-      .then((data: { restaurants: RecommendedRestaurant[] }) => { setMeals(data.restaurants ?? []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [dayIndex, budget]);
+      .then((data: { restaurants: RecommendedRestaurant[] }) => {
+        if (cancelled) return;
+        const fetched = data.restaurants ?? [];
+        setMeals(fetched);
+        setLoading(false);
+        onFetched?.(fetched);
+      })
+      .catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [dayIndex, budget, initialMeals]);
 
   if (!loading && meals.length === 0) return null;
 
@@ -184,9 +205,11 @@ interface Props {
   plan: GeneratedPlan;
   onCustomize: () => void;
   budget?: string;
+  mealPicks?: Record<number, RecommendedRestaurant[]>;
+  onMealsFetched?: (day: number, meals: RecommendedRestaurant[]) => void;
 }
 
-export function PlanStep3({ plan, onCustomize, budget = "mid" }: Props) {
+export function PlanStep3({ plan, onCustomize, budget = "mid", mealPicks, onMealsFetched }: Props) {
   const [activeDay, setActiveDay] = useState(0);
   const currentDay = plan.days[activeDay];
   const [shareState, setShareState] = useState<ShareState>("idle");
@@ -272,7 +295,12 @@ export function PlanStep3({ plan, onCustomize, budget = "mid" }: Props) {
           </div>
 
           {/* Meal picks from curated DB */}
-          <MealPicks dayIndex={activeDay} budget={budget} />
+          <MealPicks
+            dayIndex={activeDay}
+            budget={budget}
+            initialMeals={mealPicks?.[activeDay]}
+            onFetched={(meals) => onMealsFetched?.(activeDay, meals)}
+          />
         </>
       )}
 
