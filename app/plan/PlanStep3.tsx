@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { GeneratedPlan, PlaceItem } from "./types";
 
+type ShareState = "idle" | "saving" | "copied" | "error";
+
 const CATEGORY_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   food: { bg: "bg-orange-100", text: "text-orange-700", label: "Food" },
   attraction: { bg: "bg-teal-100", text: "text-teal-700", label: "Attraction" },
@@ -116,6 +118,27 @@ interface Props {
 export function PlanStep3({ plan, onCustomize }: Props) {
   const [activeDay, setActiveDay] = useState(0);
   const currentDay = plan.days[activeDay];
+  const [shareState, setShareState] = useState<ShareState>("idle");
+
+  async function handleShare() {
+    setShareState("saving");
+    try {
+      const res = await fetch("/api/save-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      if (!res.ok) throw new Error("save failed");
+      const { id } = await res.json() as { id: string };
+      const url = `${window.location.origin}/plan/${id}`;
+      await navigator.clipboard.writeText(url);
+      setShareState("copied");
+      setTimeout(() => setShareState("idle"), 3000);
+    } catch {
+      setShareState("error");
+      setTimeout(() => setShareState("idle"), 3000);
+    }
+  }
 
   return (
     <div className="animate-slide-up">
@@ -209,14 +232,39 @@ export function PlanStep3({ plan, onCustomize }: Props) {
           Love the plan? Make it yours.
         </p>
         <p className="mb-4 text-xs text-teal-600">
-          Remove places you don&apos;t want, add your own, reorder by day.
+          Remove places you don&apos;t want, add your own, reorder by day — or share with your travel crew.
         </p>
-        <button
-          onClick={onCustomize}
-          className="rounded-xl bg-teal-600 px-6 py-3 font-semibold text-white transition hover:bg-teal-700"
-        >
-          Customize This Plan →
-        </button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <button
+            onClick={onCustomize}
+            className="rounded-xl bg-teal-600 px-6 py-3 font-semibold text-white transition hover:bg-teal-700"
+          >
+            Customize This Plan →
+          </button>
+          <button
+            onClick={handleShare}
+            disabled={shareState === "saving"}
+            className="flex items-center justify-center gap-2 rounded-xl border-2 border-teal-600 px-6 py-3 font-semibold text-teal-700 transition hover:bg-teal-50 disabled:opacity-60"
+          >
+            {shareState === "saving" && (
+              <svg className="size-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+            )}
+            {shareState === "copied" && "✓ Link copied!"}
+            {shareState === "error" && "Failed — try again"}
+            {shareState === "idle" && (
+              <>
+                <svg className="size-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                </svg>
+                Share Plan
+              </>
+            )}
+            {shareState === "saving" && "Saving…"}
+          </button>
+        </div>
       </div>
     </div>
   );
