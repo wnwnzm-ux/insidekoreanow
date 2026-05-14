@@ -32,7 +32,7 @@ JSON SCHEMA (follow exactly):
           "neighborhood": "Seoul district name — see guide below",
           "duration": "X hours",
           "bestTime": "Specific best time, 10 words max",
-          "expertTip": "Hyper-specific insider tip: exact dish name, stall number, hidden entrance, or technique — 25 words max",
+          "expertTip": "Hyper-specific insider tip: exact dish, stall number, or technique — 15 words max",
           "emoji": "one relevant emoji"
         }
       ]
@@ -99,7 +99,7 @@ const BUDGET_LABELS: Record<string, string> = {
 };
 
 function buildUserMessage(answers: TripAnswers, extended?: Partial<ExtendedAnswers>): string {
-  const days = Math.min(answers.days, 7);
+  const days = Math.min(answers.days, 5);
   const extras = extended
     ? [
         extended.dietary?.length ? `Dietary restrictions: ${extended.dietary.join(", ")}` : null,
@@ -134,7 +134,7 @@ TRAVELLER PROFILE:
 - Main goal: ${PURPOSE_LABELS[answers.purpose] ?? answers.purpose}
 - Travel style: ${STYLE_LABELS[answers.style] ?? answers.style}
 - Travelling with: ${COMPANION_LABELS[answers.companion] ?? answers.companion}
-- Duration: ${answers.days} days${answers.days > 7 ? " (plan the first 7 days)" : ""}
+- Duration: ${answers.days} days${answers.days > 5 ? " (plan the first 5 days)" : ""}
 - Daily budget: ${BUDGET_LABELS[answers.budget] ?? answers.budget}
 - Must-visit: ${answers.mustVisit || "none"}${extras ? `\n- ${extras}` : ""}
 
@@ -142,7 +142,7 @@ PERSONALISATION RULES:
 - Budget: ${budgetRule}
 - Companion: ${companionRule}${answers.mustVisit ? "\n- Include must-visit requests in the most logical day" : ""}
 
-OUTPUT: Exactly ${days} day objects, exactly 3 place objects per day.`;
+OUTPUT: Exactly ${days} day objects, exactly 3 place objects per day. Keep expertTip under 15 words.`;
 }
 
 export async function POST(request: NextRequest) {
