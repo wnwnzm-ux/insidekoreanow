@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { ReactNode } from "react";
 import type { PlaceItem, DayPlan } from "./types";
 import type { RecommendedRestaurant } from "@/app/api/restaurants/recommend/route";
 import { PlanMap } from "./PlanMap";
@@ -92,6 +93,56 @@ function PlaceRow({
           </svg>
         </button>
       </div>
+    </div>
+  );
+}
+
+function DeleteBtn({ slot, activeDay, onRemoveMealPick }: {
+  slot: number;
+  activeDay: number;
+  onRemoveMealPick?: (day: number, slot: number) => void;
+}) {
+  return (
+    <button
+      onClick={() => onRemoveMealPick?.(activeDay, slot)}
+      className="flex size-6 shrink-0 items-center justify-center rounded text-slate-300 hover:bg-red-50 hover:text-red-500 transition"
+      title="Remove"
+    >
+      <svg className="size-3.5" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+      </svg>
+    </button>
+  );
+}
+
+function MealRow({ r, slot, activeDay, onRemoveMealPick }: {
+  r: RecommendedRestaurant;
+  slot: number;
+  activeDay: number;
+  onRemoveMealPick?: (day: number, slot: number) => void;
+}) {
+  const isLunch = slot === 0;
+  const dish = r.recommended_menu?.[0];
+  return (
+    <div className={`flex items-center gap-3 rounded-xl border p-3 ${isLunch ? "border-amber-200 bg-amber-50" : "border-orange-200 bg-orange-50"}`}>
+      <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${isLunch ? "bg-amber-500" : "bg-orange-600"}`}>
+        {isLunch ? "L" : "D"}
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className={`text-xs font-bold ${isLunch ? "text-amber-700" : "text-orange-700"}`}>{isLunch ? "Lunch" : "Dinner"}</span>
+          <span className="font-semibold text-sm text-slate-800 truncate">{r.name}</span>
+          {r.korean_name && <span className="text-[11px] text-slate-400">{r.korean_name}</span>}
+        </div>
+        <p className="text-[11px] text-slate-500 truncate">🍽️ {r.district ?? "Seoul"}{dish ? ` · ${dish.name}` : ""}</p>
+      </div>
+      {r.maps_url && (
+        <a href={r.maps_url} target="_blank" rel="noopener noreferrer"
+          className="shrink-0 rounded-md border border-teal-200 bg-white px-2 py-1 text-[10px] font-semibold text-teal-700 hover:bg-teal-50 transition-colors">
+          Map
+        </a>
+      )}
+      <DeleteBtn slot={slot} activeDay={activeDay} onRemoveMealPick={onRemoveMealPick} />
     </div>
   );
 }
@@ -227,50 +278,10 @@ export function PlanStep4({ days, setDays, onBack, mealPicks, onRemoveMealPick, 
               const lunch = dayMeals?.[0] ?? null;
               const dinner = dayMeals?.[1] ?? null;
               const lunchAfterIdx = Math.max(1, Math.ceil(places.length / 2));
-              const nodes: React.ReactNode[] = [];
-              let lunchInserted = false;
+              const insertLunchAfter = lunchAfterIdx - 1;
 
-              const DeleteBtn = ({ slot }: { slot: number }) => (
-                <button
-                  onClick={() => onRemoveMealPick?.(activeDay, slot)}
-                  className="flex size-6 shrink-0 items-center justify-center rounded text-slate-300 hover:bg-red-50 hover:text-red-500 transition"
-                  title="Remove"
-                >
-                  <svg className="size-3.5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              );
-
-              const MealRow = ({ r, slot }: { r: RecommendedRestaurant; slot: number }) => {
-                const isLunch = slot === 0;
-                const dish = r.recommended_menu?.[0];
-                return (
-                  <div className={`flex items-center gap-3 rounded-xl border p-3 ${isLunch ? "border-amber-200 bg-amber-50" : "border-orange-200 bg-orange-50"}`}>
-                    <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${isLunch ? "bg-amber-500" : "bg-orange-600"}`}>
-                      {isLunch ? "L" : "D"}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className={`text-xs font-bold ${isLunch ? "text-amber-700" : "text-orange-700"}`}>{isLunch ? "Lunch" : "Dinner"}</span>
-                        <span className="font-semibold text-sm text-slate-800 truncate">{r.name}</span>
-                        {r.korean_name && <span className="text-[11px] text-slate-400">{r.korean_name}</span>}
-                      </div>
-                      <p className="text-[11px] text-slate-500 truncate">🍽️ {r.district ?? "Seoul"}{dish ? ` · ${dish.name}` : ""}</p>
-                    </div>
-                    {r.maps_url && (
-                      <a href={r.maps_url} target="_blank" rel="noopener noreferrer"
-                        className="shrink-0 rounded-md border border-teal-200 bg-white px-2 py-1 text-[10px] font-semibold text-teal-700 hover:bg-teal-50 transition-colors">
-                        Map
-                      </a>
-                    )}
-                    <DeleteBtn slot={slot} />
-                  </div>
-                );
-              };
-
-              places.forEach((place, pi) => {
-                nodes.push(
+              const nodes: ReactNode[] = places.flatMap((place, pi) => {
+                const items: ReactNode[] = [
                   <PlaceRow
                     key={place.id}
                     place={place}
@@ -281,16 +292,16 @@ export function PlanStep4({ days, setDays, onBack, mealPicks, onRemoveMealPick, 
                     onDelete={() => deletePlace(activeDay, pi)}
                     isHighlighted={highlightedId === place.id}
                     onClick={() => setHighlightedId((id) => (id === place.id ? "" : place.id))}
-                  />
-                );
-                if (pi + 1 === lunchAfterIdx && lunch) {
-                  lunchInserted = true;
-                  nodes.push(<MealRow key="meal-0" r={lunch} slot={0} />);
+                  />,
+                ];
+                if (pi === insertLunchAfter && lunch) {
+                  items.push(<MealRow key="meal-0" r={lunch} slot={0} activeDay={activeDay} onRemoveMealPick={onRemoveMealPick} />);
                 }
+                return items;
               });
 
-              if (!lunchInserted && lunch) nodes.push(<MealRow key="meal-0" r={lunch} slot={0} />);
-              if (dinner) nodes.push(<MealRow key="meal-1" r={dinner} slot={1} />);
+              if (places.length === 0 && lunch) nodes.push(<MealRow key="meal-0" r={lunch} slot={0} activeDay={activeDay} onRemoveMealPick={onRemoveMealPick} />);
+              if (dinner) nodes.push(<MealRow key="meal-1" r={dinner} slot={1} activeDay={activeDay} onRemoveMealPick={onRemoveMealPick} />);
 
               return <div className="space-y-2">{nodes}</div>;
             })()}
