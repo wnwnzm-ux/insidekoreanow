@@ -15,7 +15,7 @@ import type { RecommendedRestaurant } from "@/app/api/restaurants/recommend/rout
 
 // ── localStorage ─────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = "ikn_korea_plan_v1";
+const STORAGE_KEY = "ikn_korea_plan_v2";
 
 interface SavedState {
   answers: Partial<TripAnswers>;
@@ -337,10 +337,6 @@ export function TripPlannerFlow() {
   const [genProgress, setGenProgress] = useState(0);
   const [mealPicks, setMealPicks] = useState<Record<number, (RecommendedRestaurant | null)[]>>({});
 
-  const handleMealsFetched = useCallback((day: number, meals: RecommendedRestaurant[]) => {
-    setMealPicks((prev) => ({ ...prev, [day]: [meals[0] ?? null, meals[1] ?? null] }));
-  }, []);
-
   const fetchAllMealPicks = useCallback((planDaysCount: number, budget: string) => {
     Array.from({ length: planDaysCount }, (_, i) => i).forEach((dayIndex) => {
       const params = new URLSearchParams({ city: "Seoul", day: String(dayIndex + 1), budget, limit: "2" });
@@ -648,9 +644,7 @@ export function TripPlannerFlow() {
               <PlanStep3
                 plan={{ ...plan, days: activeDays }}
                 onCustomize={() => setStage("customize")}
-                budget={answers.budget}
                 mealPicks={mealPicks}
-                onMealsFetched={handleMealsFetched}
               />
             )}
           </div>
