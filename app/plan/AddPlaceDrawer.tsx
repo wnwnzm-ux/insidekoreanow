@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { CURATED_PLACES } from "./curatedPlaces";
 import type { PlaceItem } from "./types";
 import type { RecommendedRestaurant } from "@/app/api/restaurants/recommend/route";
@@ -27,19 +27,26 @@ interface Props {
 export function AddPlaceDrawer({ open, onClose, onAdd, onAddMeal, activeMealPicks, existingNames, activeDay = 0 }: Props) {
   const [category, setCategory] = useState("all");
   const [query, setQuery] = useState("");
-  const [dbFoods, setDbFoods] = useState<RecommendedRestaurant[]>([]);
-  const [dbLoading, setDbLoading] = useState(false);
+  // Cache results per day so switching days shows loading state without synchronous setState
+  const [dbFoodsCache, setDbFoodsCache] = useState<Record<number, RecommendedRestaurant[]>>({});
+  const dbFoods = dbFoodsCache[activeDay];
+  const dbLoading = category === "food" && dbFoods === undefined;
 
-  // Fetch DB restaurants when Food tab is selected
+  // Fetch DB restaurants when Food tab is selected (lazy, cached per day)
   useEffect(() => {
-    if (category !== "food") return;
-    setDbLoading(true);
+    if (category !== "food" || dbFoods !== undefined) return;
+    let cancelled = false;
     const params = new URLSearchParams({ city: "Seoul", day: String(activeDay + 1), limit: "20" });
     fetch(`/api/restaurants/recommend?${params}`)
       .then((r) => r.json())
-      .then((data: { restaurants: RecommendedRestaurant[] }) => { setDbFoods(data.restaurants ?? []); setDbLoading(false); })
-      .catch(() => setDbLoading(false));
-  }, [category, activeDay]);
+      .then((data: { restaurants: RecommendedRestaurant[] }) => {
+        if (!cancelled) setDbFoodsCache((prev) => ({ ...prev, [activeDay]: data.restaurants ?? [] }));
+      })
+      .catch(() => {
+        if (!cancelled) setDbFoodsCache((prev) => ({ ...prev, [activeDay]: [] }));
+      });
+    return () => { cancelled = true; };
+  }, [category, activeDay, dbFoods]);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -54,16 +61,16 @@ export function AddPlaceDrawer({ open, onClose, onAdd, onAddMeal, activeMealPick
     });
   }, [category, query]);
 
-  const handleAdd = (p: typeof CURATED_PLACES[0]) => {
+  const handleAdd = useCallback((p: typeof CURATED_PLACES[0]) => {
     const place: PlaceItem = {
       ...p,
       id: `curated_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       whyPicked: "Added from curated list",
     };
     onAdd(place);
-  };
+  }, [onAdd]);
 
-  const handleAddDb = (r: RecommendedRestaurant) => {
+  const handleAddDb = useCallback((r: RecommendedRestaurant) => {
     const dish = r.recommended_menu?.[0];
     const place: PlaceItem = {
       id: `db_${r.id}_${Date.now()}`,
@@ -78,7 +85,7 @@ export function AddPlaceDrawer({ open, onClose, onAdd, onAddMeal, activeMealPick
       emoji: "🍽️",
     };
     onAdd(place);
-  };
+  }, [onAdd]);
 
   const THEME_BADGE: Record<string, { bg: string; text: string }> = {
     "Michelin-listed": { bg: "bg-red-100", text: "text-red-700" },
@@ -88,9 +95,10 @@ export function AddPlaceDrawer({ open, onClose, onAdd, onAddMeal, activeMealPick
   };
 
   const filteredDb = useMemo(() => {
+    const foods = dbFoods ?? [];
     const q = query.toLowerCase().trim();
-    if (!q) return dbFoods;
-    return dbFoods.filter((r) =>
+    if (!q) return foods;
+    return foods.filter((r) =>
       r.name.toLowerCase().includes(q) ||
       (r.korean_name ?? "").toLowerCase().includes(q) ||
       (r.district ?? "").toLowerCase().includes(q)

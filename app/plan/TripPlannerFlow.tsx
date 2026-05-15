@@ -377,15 +377,15 @@ export function TripPlannerFlow() {
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Pre-fetch all days' meal picks when a saved plan is restored on mount
-  const fetchAllMealPicksRef = useRef(fetchAllMealPicks);
-  fetchAllMealPicksRef.current = fetchAllMealPicks;
+  const mountedRef = useRef(false);
   useEffect(() => {
+    if (mountedRef.current) return;
+    mountedRef.current = true;
     const saved = loadSaved();
     if (saved?.plan) {
-      fetchAllMealPicksRef.current(saved.plan.days.length, saved.answers?.budget ?? "mid");
+      fetchAllMealPicks(saved.plan.days.length, saved.answers?.budget ?? "mid");
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchAllMealPicks]);
 
   // ── Persist to localStorage on every relevant change ──────────────────────────
   useEffect(() => {
@@ -482,7 +482,7 @@ export function TripPlannerFlow() {
       setError("Something went wrong generating your plan. Please try again.");
       setStage("generating");
     }
-  }, [answers, extended]);
+  }, [answers, extended, fetchAllMealPicks]);
 
   // Days used in Step 4: prefer customised version, else fall back to plan
   const activeDays = customDays ?? plan?.days ?? [];

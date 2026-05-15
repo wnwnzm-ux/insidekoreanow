@@ -108,29 +108,30 @@ interface Props {
 }
 
 export function RestaurantSection({ dayIndex, city = "Seoul", budget = "mid" }: Props) {
-  const [restaurants, setRestaurants] = useState<RecommendedRestaurant[]>([]);
-  const [status, setStatus] = useState<"loading" | "ok" | "empty" | "error">("loading");
+  // Cache results by key so the loading state is derived without synchronous setState in effect
+  const [cache, setCache] = useState<Record<string, RecommendedRestaurant[] | "error">>({});
+  const cacheKey = `${dayIndex}-${city}-${budget}`;
+  const cached = cache[cacheKey];
+  const status = cached === undefined ? "loading" : cached === "error" ? "error" : cached.length === 0 ? "empty" : "ok";
+  const restaurants = Array.isArray(cached) ? cached : [];
 
   useEffect(() => {
-    setStatus("loading");
-    const day = dayIndex + 1;
-    const params = new URLSearchParams({
-      city,
-      day: String(day),
-      budget,
-      limit: "3",
-    });
+    if (cache[cacheKey] !== undefined) return;
+    let cancelled = false;
+    const params = new URLSearchParams({ city, day: String(dayIndex + 1), budget, limit: "3" });
     fetch(`/api/restaurants/recommend?${params}`)
       .then((r) => {
         if (!r.ok) throw new Error(r.statusText);
         return r.json() as Promise<{ restaurants: RecommendedRestaurant[] }>;
       })
       .then(({ restaurants: data }) => {
-        setRestaurants(data);
-        setStatus(data.length > 0 ? "ok" : "empty");
+        if (!cancelled) setCache((prev) => ({ ...prev, [cacheKey]: data }));
       })
-      .catch(() => setStatus("error"));
-  }, [dayIndex, city, budget]);
+      .catch(() => {
+        if (!cancelled) setCache((prev) => ({ ...prev, [cacheKey]: "error" }));
+      });
+    return () => { cancelled = true; };
+  }, [dayIndex, city, budget, cacheKey, cache]);
 
   // Don't render anything if DB isn't ready yet or returns empty
   if (status === "empty" || status === "error") return null;
