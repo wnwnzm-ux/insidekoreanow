@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import type { ReactNode } from "react";
 import type { GeneratedPlan, PlaceItem } from "./types";
 import type { RecommendedRestaurant } from "@/app/api/restaurants/recommend/route";
 
@@ -167,37 +168,56 @@ type ShareState = "idle" | "saving" | "copied" | "error";
 interface Props {
   plan: GeneratedPlan;
   onCustomize: () => void;
-  budget?: string;
   mealPicks?: Record<number, (RecommendedRestaurant | null)[]>;
-  onMealsFetched?: (day: number, meals: RecommendedRestaurant[]) => void;
 }
 
-export function PlanStep3({ plan, onCustomize, budget = "mid", mealPicks, onMealsFetched }: Props) {
-  const [activeDay, setActiveDay] = useState(0);
-  const currentDay = plan.days[activeDay];
-  const [shareState, setShareState] = useState<ShareState>("idle");
+function DaySection({ day, dayIndex, meals }: {
+  day: GeneratedPlan["days"][0];
+  dayIndex: number;
+  meals: (RecommendedRestaurant | null)[] | undefined;
+}) {
+  const places = day.places;
+  const fetched = meals !== undefined;
+  const lunch = meals?.[0] ?? null;
+  const dinner = meals?.[1] ?? null;
+  const lunchAfterIdx = Math.max(1, Math.ceil(places.length / 2));
+  const nodes: ReactNode[] = [];
+  let lunchInserted = false;
 
-  const currentMeals = mealPicks?.[activeDay];
-  const [mealsLoading, setMealsLoading] = useState(currentMeals === undefined);
-
-  useEffect(() => {
-    if (currentMeals !== undefined) {
-      setMealsLoading(false);
-      return;
+  places.forEach((place, i) => {
+    nodes.push(<PlaceCard key={place.id} place={place} index={i} />);
+    if (i + 1 === lunchAfterIdx) {
+      lunchInserted = true;
+      if (!fetched) nodes.push(<MealCardSkeleton key={`${dayIndex}-l-skel`} label="Lunch" />);
+      else if (lunch) nodes.push(<MealCard key={`${dayIndex}-l-${lunch.id}`} r={lunch} label="Lunch" />);
     }
-    setMealsLoading(true);
-    let cancelled = false;
-    const params = new URLSearchParams({ city: "Seoul", day: String(activeDay + 1), budget, limit: "2" });
-    fetch(`/api/restaurants/recommend?${params}`)
-      .then((r) => r.json())
-      .then((data: { restaurants: RecommendedRestaurant[] }) => {
-        if (cancelled) return;
-        setMealsLoading(false);
-        onMealsFetched?.(activeDay, data.restaurants ?? []);
-      })
-      .catch(() => { if (!cancelled) setMealsLoading(false); });
-    return () => { cancelled = true; };
-  }, [activeDay, budget, currentMeals]);
+  });
+
+  if (!lunchInserted) {
+    if (!fetched) nodes.push(<MealCardSkeleton key={`${dayIndex}-l-skel`} label="Lunch" />);
+    else if (lunch) nodes.push(<MealCard key={`${dayIndex}-l-${lunch.id}`} r={lunch} label="Lunch" />);
+  }
+
+  if (!fetched) nodes.push(<MealCardSkeleton key={`${dayIndex}-d-skel`} label="Dinner" />);
+  else if (dinner) nodes.push(<MealCard key={`${dayIndex}-d-${dinner.id}`} r={dinner} label="Dinner" />);
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center gap-2">
+        <span className="flex size-7 items-center justify-center rounded-full bg-teal-600 text-xs font-bold text-white">
+          {day.day}
+        </span>
+        <h3 className="font-bold text-slate-800">{day.theme}</h3>
+      </div>
+      <div className="space-y-4 pl-3">
+        {nodes}
+      </div>
+    </div>
+  );
+}
+
+export function PlanStep3({ plan, onCustomize, mealPicks }: Props) {
+  const [shareState, setShareState] = useState<ShareState>("idle");
 
   async function handleShare() {
     setShareState("saving");
@@ -219,44 +239,15 @@ export function PlanStep3({ plan, onCustomize, budget = "mid", mealPicks, onMeal
     }
   }
 
-  // Build interleaved list: places + meal picks in time order
-  function buildDayItems() {
-    if (!currentDay) return null;
-    const places = currentDay.places;
-    const dayFetched = currentMeals !== undefined;
-    const lunch = currentMeals?.[0] ?? null;
-    const dinner = currentMeals?.[1] ?? null;
-    const lunchAfterIdx = Math.max(1, Math.ceil(places.length / 2));
-    const nodes: React.ReactNode[] = [];
-    let lunchInserted = false;
-
-    places.forEach((place, i) => {
-      nodes.push(<PlaceCard key={place.id} place={place} index={i} />);
-      if (i + 1 === lunchAfterIdx) {
-        lunchInserted = true;
-        if (!dayFetched) nodes.push(<MealCardSkeleton key="l-skel" label="Lunch" />);
-        else if (lunch) nodes.push(<MealCard key={`l-${lunch.id}`} r={lunch} label="Lunch" />);
-      }
-    });
-
-    if (!lunchInserted) {
-      if (!dayFetched) nodes.push(<MealCardSkeleton key="l-skel" label="Lunch" />);
-      else if (lunch) nodes.push(<MealCard key={`l-${lunch.id}`} r={lunch} label="Lunch" />);
-    }
-
-    if (!dayFetched) nodes.push(<MealCardSkeleton key="d-skel" label="Dinner" />);
-    else if (dinner) nodes.push(<MealCard key={`d-${dinner.id}`} r={dinner} label="Dinner" />);
-
-    return nodes;
-  }
-
   return (
     <div className="animate-slide-up">
       {/* Plan hero */}
       <div className="mb-6 rounded-2xl bg-gradient-to-br from-teal-600 to-teal-800 p-6 text-white">
         <div className="mb-2 flex items-center gap-2">
           <span className="rounded-full bg-teal-500/40 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider">Your Expert Plan</span>
-          <span className="rounded-full bg-teal-500/40 px-2.5 py-0.5 text-xs font-medium">{plan.days.length} days</span>
+          <span className="rounded-full bg-teal-500/40 px-2.5 py-0.5 text-xs font-medium">
+            {plan.days.length} {plan.days.length === 1 ? "day" : "days"}
+          </span>
         </div>
         <h2 className="text-xl font-bold leading-snug">{plan.title}</h2>
         <p className="mt-2 text-sm leading-relaxed text-teal-100">{plan.overview}</p>
@@ -266,66 +257,20 @@ export function PlanStep3({ plan, onCustomize, budget = "mid", mealPicks, onMeal
         </div>
       </div>
 
-      {/* Day tabs */}
-      <div className="mb-5 -mx-1">
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide px-1">
-          {plan.days.map((day, i) => (
-            <button
-              key={day.day}
-              onClick={() => setActiveDay(i)}
-              className={`shrink-0 rounded-xl px-3.5 py-2 text-sm font-semibold transition-all ${
-                activeDay === i ? "bg-teal-600 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-teal-50 hover:text-teal-700"
-              }`}
-            >
-              Day {day.day}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Day header */}
-      {currentDay && (
-        <>
-          <div className="mb-4 flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-full bg-teal-600 text-xs font-bold text-white">
-              {currentDay.day}
-            </span>
-            <h3 className="font-bold text-slate-800">{currentDay.theme}</h3>
-          </div>
-
-          {/* Interleaved place cards + meal picks */}
-          <div className="space-y-4 pl-3">
-            {buildDayItems()}
-          </div>
-        </>
-      )}
-
-      {/* Pagination */}
-      <div className="mt-6 flex items-center justify-between">
-        <button
-          onClick={() => setActiveDay((d) => Math.max(0, d - 1))}
-          disabled={activeDay === 0}
-          className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-30"
-        >
-          <svg className="size-4" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-          </svg>
-          Previous day
-        </button>
-        <button
-          onClick={() => setActiveDay((d) => Math.min(plan.days.length - 1, d + 1))}
-          disabled={activeDay === plan.days.length - 1}
-          className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-30"
-        >
-          Next day
-          <svg className="size-4" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-          </svg>
-        </button>
+      {/* All days — scrolling list */}
+      <div className="space-y-8">
+        {plan.days.map((day, i) => (
+          <DaySection
+            key={day.day}
+            day={day}
+            dayIndex={i}
+            meals={mealPicks?.[i]}
+          />
+        ))}
       </div>
 
       {/* CTA */}
-      <div className="mt-6 rounded-2xl border-2 border-dashed border-teal-200 bg-teal-50 p-5 text-center">
+      <div className="mt-8 rounded-2xl border-2 border-dashed border-teal-200 bg-teal-50 p-5 text-center">
         <p className="mb-1 text-sm font-semibold text-teal-800">Love the plan? Make it yours.</p>
         <p className="mb-4 text-xs text-teal-600">Remove places you don&apos;t want, add your own, reorder by day — or share with your travel crew.</p>
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
