@@ -225,7 +225,7 @@ export function PlanStep3({ plan, onCustomize, mealPicks }: Props) {
       const res = await fetch("/api/save-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, mealPicks }),
       });
       if (!res.ok) throw new Error("save failed");
       const { id } = await res.json() as { id: string };

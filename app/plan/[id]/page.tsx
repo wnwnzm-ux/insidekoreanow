@@ -3,11 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
 import type { GeneratedPlan } from "@/app/plan/types";
+import type { RecommendedRestaurant } from "@/app/api/restaurants/recommend/route";
 import { SharedPlanView } from "./SharedPlanView";
 
 type Props = { params: Promise<{ id: string }> };
+type StoredPlan = GeneratedPlan & { _mealPicks?: Record<string, (RecommendedRestaurant | null)[]> };
 
-async function fetchPlan(id: string): Promise<GeneratedPlan | null> {
+async function fetchStoredPlan(id: string): Promise<StoredPlan | null> {
   const { data, error } = await getSupabase()
     .from("plans")
     .select("plan_json")
@@ -15,23 +17,25 @@ async function fetchPlan(id: string): Promise<GeneratedPlan | null> {
     .single();
 
   if (error || !data) return null;
-  return data.plan_json as GeneratedPlan;
+  return data.plan_json as StoredPlan;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const plan = await fetchPlan(id);
-  if (!plan) return { title: "Plan not found — InsideKoreaNow" };
+  const stored = await fetchStoredPlan(id);
+  if (!stored) return { title: "Plan not found — InsideKoreaNow" };
   return {
-    title: `${plan.title} — InsideKoreaNow`,
-    description: plan.overview,
+    title: `${stored.title} — InsideKoreaNow`,
+    description: stored.overview,
   };
 }
 
 export default async function SharedPlanPage({ params }: Props) {
   const { id } = await params;
-  const plan = await fetchPlan(id);
-  if (!plan) notFound();
+  const stored = await fetchStoredPlan(id);
+  if (!stored) notFound();
+
+  const { _mealPicks, ...plan } = stored;
 
   return (
     <div className="min-h-screen bg-slate-50 pb-16 pt-8">
@@ -49,7 +53,7 @@ export default async function SharedPlanPage({ params }: Props) {
           <span className="text-xs text-slate-400">Shared via InsideKoreaNow</span>
         </div>
 
-        <SharedPlanView plan={plan} />
+        <SharedPlanView plan={plan} mealPicks={_mealPicks ?? {}} />
 
         <div className="mt-10 rounded-2xl bg-gradient-to-br from-teal-600 to-teal-800 p-6 text-center text-white">
           <p className="text-lg font-bold">Want a plan like this?</p>

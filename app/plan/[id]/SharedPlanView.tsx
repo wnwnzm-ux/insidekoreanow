@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import type { ReactNode } from "react";
 import type { GeneratedPlan, PlaceItem } from "@/app/plan/types";
+import type { RecommendedRestaurant } from "@/app/api/restaurants/recommend/route";
 
 const CATEGORY_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   food: { bg: "bg-orange-100", text: "text-orange-700", label: "Food" },
@@ -9,6 +11,13 @@ const CATEGORY_STYLES: Record<string, { bg: string; text: string; label: string 
   shopping: { bg: "bg-pink-100", text: "text-pink-700", label: "Shopping" },
   cafe: { bg: "bg-amber-100", text: "text-amber-700", label: "Café" },
   neighborhood: { bg: "bg-slate-100", text: "text-slate-600", label: "Explore" },
+};
+
+const THEME_BADGE: Record<string, { bg: string; text: string }> = {
+  "Michelin-listed": { bg: "bg-red-100", text: "text-red-700" },
+  "TV Feature": { bg: "bg-purple-100", text: "text-purple-700" },
+  "Hidden Gem": { bg: "bg-emerald-100", text: "text-emerald-700" },
+  "Foodie Favorite": { bg: "bg-orange-100", text: "text-orange-700" },
 };
 
 function PlaceCard({ place, index }: { place: PlaceItem; index: number }) {
@@ -48,9 +57,82 @@ function PlaceCard({ place, index }: { place: PlaceItem; index: number }) {
   );
 }
 
-export function SharedPlanView({ plan }: { plan: GeneratedPlan }) {
+function MealCard({ r, label }: { r: RecommendedRestaurant; label: "Lunch" | "Dinner" }) {
+  const dish = r.recommended_menu?.[0];
+  const topTheme = (r.travel_theme ?? []).find((t) => t in THEME_BADGE);
+  const badge = topTheme ? THEME_BADGE[topTheme] : null;
+  const isLunch = label === "Lunch";
+
+  return (
+    <div className="relative rounded-2xl border border-orange-100 bg-orange-50/60 shadow-sm">
+      <div className={`absolute -left-3 top-4 flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-bold text-white shadow-sm ${isLunch ? "bg-amber-500" : "bg-orange-600"}`}>
+        {label}
+      </div>
+      <div className="flex items-start justify-between gap-3 p-4 pl-6">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xl leading-none">🍽️</span>
+            <h3 className="font-bold text-slate-800">{r.name}</h3>
+            {r.korean_name && <span className="text-xs text-slate-400">{r.korean_name}</span>}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            {badge && topTheme && (
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${badge.bg} ${badge.text}`}>
+                {topTheme}
+              </span>
+            )}
+            {r.district && <span className="text-xs text-slate-500">📍 {r.district}</span>}
+          </div>
+          {dish && (
+            <p className="mt-1 text-xs text-slate-600">
+              <span className="font-medium">Try:</span> {dish.name}
+              {dish.korean_name && <span className="text-slate-400"> ({dish.korean_name})</span>}
+            </p>
+          )}
+        </div>
+        {r.maps_url && (
+          <a
+            href={r.maps_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 flex items-center gap-1 rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1.5 text-[11px] font-semibold text-teal-700 hover:bg-teal-100 transition-colors"
+          >
+            <svg className="size-3" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+            </svg>
+            Map
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function SharedPlanView({
+  plan,
+  mealPicks = {},
+}: {
+  plan: GeneratedPlan;
+  mealPicks?: Record<string, (RecommendedRestaurant | null)[]>;
+}) {
   const [activeDay, setActiveDay] = useState(0);
   const currentDay = plan.days[activeDay];
+  const dayMeals = mealPicks[activeDay] ?? mealPicks[String(activeDay)] ?? [];
+  const lunch = (dayMeals[0] ?? null) as RecommendedRestaurant | null;
+  const dinner = (dayMeals[1] ?? null) as RecommendedRestaurant | null;
+
+  const places = currentDay?.places ?? [];
+  const lunchAfterIdx = Math.max(1, Math.ceil(places.length / 2)) - 1;
+
+  const nodes: ReactNode[] = places.flatMap((place, i) => {
+    const items: ReactNode[] = [<PlaceCard key={place.id} place={place} index={i} />];
+    if (i === lunchAfterIdx && lunch) {
+      items.push(<MealCard key="lunch" r={lunch} label="Lunch" />);
+    }
+    return items;
+  });
+  if (places.length === 0 && lunch) nodes.push(<MealCard key="lunch" r={lunch} label="Lunch" />);
+  if (dinner) nodes.push(<MealCard key="dinner" r={dinner} label="Dinner" />);
 
   return (
     <div>
@@ -100,9 +182,7 @@ export function SharedPlanView({ plan }: { plan: GeneratedPlan }) {
             <h3 className="font-bold text-slate-800">{currentDay.theme}</h3>
           </div>
           <div className="space-y-4 pl-3">
-            {currentDay.places.map((place, i) => (
-              <PlaceCard key={place.id} place={place} index={i} />
-            ))}
+            {nodes}
           </div>
         </>
       )}
