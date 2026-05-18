@@ -172,6 +172,8 @@ async function generateWithAnthropic(keyword, category, apiKey) {
 function buildPrompt(keyword, category) {
   return `You write SEO travel content for InsideKoreaNow, an English-language Korea travel platform for foreign visitors.
 
+Current year: 2026. All guides and titles should reflect 2026 — use "(2026 Guide)" or "2026" in the title where a year adds SEO value.
+
 Keyword: ${keyword}
 Category slug: ${category}
 

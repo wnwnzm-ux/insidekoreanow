@@ -103,7 +103,7 @@ export const WP_POSTS: BlogPost[] = [
   },
   {
     "id": "how-to-buy-kpop-merchandise-in-korea",
-    "title": "How to Buy K-Pop Merchandise in Korea (2024 Guide)",
+    "title": "How to Buy K-Pop Merchandise in Korea (2026 Guide)",
     "excerpt": "Your ultimate guide to buying K-pop merchandise in Korea — from official flagship stores and idol cafés to hidden market stalls and online pick-up tips.",
     "date": "May 12, 2026",
     "dateIso": "2026-05-12",
