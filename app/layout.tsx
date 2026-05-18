@@ -39,6 +39,9 @@ export const metadata: Metadata = {
     title: `${SITE_NAME} - Korea travel guides for international visitors`,
     description: SITE_DESCRIPTION,
   },
+  other: {
+    "google-adsense-account": "ca-pub-6710482617538110",
+  },
 };
 
 export default function RootLayout({
