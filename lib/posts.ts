@@ -19,7 +19,7 @@ export const WP_POSTS: BlogPost[] = [
   },
   {
     "id": "how-to-use-korean-atms-with-foreign-cards",
-    "title": "How to Use Korean ATMs With Foreign Cards (2024 Guide)",
+    "title": "How to Use Korean ATMs With Foreign Cards (2026 Guide)",
     "excerpt": "Worried about getting cash in Korea? Here's everything you need to know about using Korean ATMs with foreign cards — where to find them, fees, and tips.",
     "date": "May 17, 2026",
     "dateIso": "2026-05-17",
@@ -31,7 +31,7 @@ export const WP_POSTS: BlogPost[] = [
   },
   {
     "id": "how-to-use-kakao-t-taxi-app-korea",
-    "title": "How to Use Kakao T Taxi App in Korea (2024 Guide)",
+    "title": "How to Use Kakao T Taxi App in Korea (2026 Guide)",
     "excerpt": "New to Korea and need a ride? Learn how to download, set up, and use the Kakao T taxi app like a local — no Korean required. Your stress-free guide starts here.",
     "date": "May 17, 2026",
     "dateIso": "2026-05-17",
@@ -67,7 +67,7 @@ export const WP_POSTS: BlogPost[] = [
   },
   {
     "id": "how-to-book-ktx-train-tickets-korea",
-    "title": "How to Book KTX & Train Tickets in Korea (2024)",
+    "title": "How to Book KTX & Train Tickets in Korea (2026)",
     "excerpt": "New to Korean trains? Here's your complete, friendly guide to booking KTX and intercity train tickets in Korea — online, by app, or at the station.",
     "date": "May 16, 2026",
     "dateIso": "2026-05-16",
