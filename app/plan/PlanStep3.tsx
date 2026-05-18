@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import type { GeneratedPlan, PlaceItem } from "./types";
 import type { RecommendedRestaurant } from "@/app/api/restaurants/recommend/route";
+import { PlanMap } from "./PlanMap";
 
 const THEME_BADGE: Record<string, { bg: string; text: string }> = {
   "Michelin-listed": { bg: "bg-red-100", text: "text-red-700" },
@@ -224,6 +225,7 @@ function DaySection({ day, dayIndex, meals }: {
 export function PlanStep3({ plan, onCustomize, mealPicks }: Props) {
   const [shareState, setShareState] = useState<ShareState>("idle");
   const [activeDay, setActiveDay] = useState(0);
+  const [view, setView] = useState<"list" | "map">("list");
 
   async function handleShare() {
     setShareState("saving");
@@ -263,36 +265,74 @@ export function PlanStep3({ plan, onCustomize, mealPicks }: Props) {
         </div>
       </div>
 
-      {/* Day tabs */}
-      <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
-        {plan.days.map((day, i) => {
-          const mealsReady = mealPicks?.[i] !== undefined;
-          return (
-            <button
-              key={day.day}
-              onClick={() => setActiveDay(i)}
-              className={`flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
-                activeDay === i
-                  ? "border-teal-600 bg-teal-600 text-white shadow-sm"
-                  : "border-slate-200 bg-white text-slate-600 hover:border-teal-300 hover:bg-teal-50"
-              }`}
-            >
-              <span>Day {day.day}</span>
-              {!mealsReady && (
-                <span className="size-1.5 animate-pulse rounded-full bg-current opacity-60" />
-              )}
-            </button>
-          );
-        })}
+      {/* Day tabs + view toggle */}
+      <div className="mb-5 flex items-center gap-2">
+        {/* Day tabs — scrollable */}
+        <div className="flex flex-1 gap-2 overflow-x-auto pb-1">
+          {plan.days.map((day, i) => {
+            const mealsReady = mealPicks?.[i] !== undefined;
+            return (
+              <button
+                key={day.day}
+                onClick={() => setActiveDay(i)}
+                className={`flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
+                  activeDay === i
+                    ? "border-teal-600 bg-teal-600 text-white shadow-sm"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-teal-300 hover:bg-teal-50"
+                }`}
+              >
+                <span>Day {day.day}</span>
+                {!mealsReady && view === "list" && (
+                  <span className="size-1.5 animate-pulse rounded-full bg-current opacity-60" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* List / Map toggle */}
+        <div className="flex shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white text-sm font-semibold shadow-sm">
+          <button
+            onClick={() => setView("list")}
+            className={`flex items-center gap-1.5 px-3 py-2 transition ${
+              view === "list" ? "bg-teal-600 text-white" : "text-slate-500 hover:bg-slate-50"
+            }`}
+          >
+            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+            <span className="hidden sm:inline">List</span>
+          </button>
+          <button
+            onClick={() => setView("map")}
+            className={`flex items-center gap-1.5 px-3 py-2 transition ${
+              view === "map" ? "bg-teal-600 text-white" : "text-slate-500 hover:bg-slate-50"
+            }`}
+          >
+            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+            <span className="hidden sm:inline">Map</span>
+          </button>
+        </div>
       </div>
 
-      {/* Active day content */}
-      <DaySection
-        key={activeDay}
-        day={plan.days[activeDay]}
-        dayIndex={activeDay}
-        meals={mealPicks?.[activeDay]}
-      />
+      {/* Active day — list or map */}
+      {view === "list" ? (
+        <DaySection
+          key={activeDay}
+          day={plan.days[activeDay]}
+          dayIndex={activeDay}
+          meals={mealPicks?.[activeDay]}
+        />
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-slate-200 shadow-sm" style={{ height: 420 }}>
+          <PlanMap
+            days={[plan.days[activeDay]]}
+            activeDay={1}
+          />
+        </div>
+      )}
 
       {/* CTA */}
       <div className="mt-8 rounded-2xl border-2 border-dashed border-teal-200 bg-teal-50 p-5 text-center">
