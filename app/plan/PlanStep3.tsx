@@ -203,11 +203,16 @@ function DaySection({ day, dayIndex, meals }: {
 
   return (
     <div>
-      <div className="mb-4 flex items-center gap-2">
-        <span className="flex size-7 items-center justify-center rounded-full bg-teal-600 text-xs font-bold text-white">
-          {day.day}
-        </span>
-        <h3 className="font-bold text-slate-800">{day.theme}</h3>
+      {/* Day header bar */}
+      <div className="mb-5 flex items-center gap-3">
+        <div className="flex items-center gap-2.5 rounded-2xl bg-teal-600 px-4 py-2.5 shadow-sm">
+          <span className="text-xs font-bold uppercase tracking-widest text-teal-200">Day</span>
+          <span className="text-xl font-bold text-white leading-none">{day.day}</span>
+        </div>
+        <div className="flex-1">
+          <h3 className="font-bold text-slate-800 leading-snug">{day.theme}</h3>
+          <p className="text-xs text-slate-400">{places.length} stops</p>
+        </div>
       </div>
       <div className="space-y-4 pl-3">
         {nodes}
@@ -258,14 +263,22 @@ export function PlanStep3({ plan, onCustomize, mealPicks }: Props) {
       </div>
 
       {/* All days — scrolling list */}
-      <div className="space-y-8">
+      <div>
         {plan.days.map((day, i) => (
-          <DaySection
-            key={day.day}
-            day={day}
-            dayIndex={i}
-            meals={mealPicks?.[i]}
-          />
+          <div key={day.day}>
+            {i > 0 && (
+              <div className="my-8 flex items-center gap-3">
+                <div className="h-px flex-1 bg-slate-200" />
+                <span className="text-xs font-semibold uppercase tracking-widest text-slate-300">Next Day</span>
+                <div className="h-px flex-1 bg-slate-200" />
+              </div>
+            )}
+            <DaySection
+              day={day}
+              dayIndex={i}
+              meals={mealPicks?.[i]}
+            />
+          </div>
         ))}
       </div>
 
