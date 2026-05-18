@@ -337,7 +337,7 @@ export function TripPlannerFlow() {
   const [genProgress, setGenProgress] = useState(0);
   const [mealPicks, setMealPicks] = useState<Record<number, (RecommendedRestaurant | null)[]>>({});
 
-  const fetchAllMealPicks = useCallback((planDays: DayPlan[], budget: string) => {
+  const fetchAllMealPicks = useCallback((planDays: DayPlan[], budget: string, force = false) => {
     planDays.forEach((day, dayIndex) => {
       const neighborhoods = [...new Set(day.places.map((p) => p.neighborhood))].join(",");
       const params = new URLSearchParams({ city: "Seoul", day: String(dayIndex + 1), budget, limit: "2" });
@@ -346,13 +346,13 @@ export function TripPlannerFlow() {
         .then((r) => r.json())
         .then((data: { restaurants: RecommendedRestaurant[] }) => {
           setMealPicks((prev) => {
-            if (prev[dayIndex] !== undefined) return prev;
+            if (!force && prev[dayIndex] !== undefined) return prev;
             return { ...prev, [dayIndex]: [data.restaurants?.[0] ?? null, data.restaurants?.[1] ?? null] };
           });
         })
         .catch(() => {
           setMealPicks((prev) => {
-            if (prev[dayIndex] !== undefined) return prev;
+            if (!force && prev[dayIndex] !== undefined) return prev;
             return { ...prev, [dayIndex]: [null, null] };
           });
         });
@@ -437,6 +437,22 @@ export function TripPlannerFlow() {
     abortRef.current = ctrl;
 
     const totalDays = answers.days ?? 5;
+    const budget = answers.budget ?? "mid";
+
+    // Pre-fetch meal picks immediately in parallel with plan generation
+    // Uses day-index fallback (no neighborhoods yet) → instant results
+    Array.from({ length: totalDays }, (_, i) => {
+      const params = new URLSearchParams({ city: "Seoul", day: String(i + 1), budget, limit: "2" });
+      fetch(`/api/restaurants/recommend?${params}`)
+        .then((r) => r.json())
+        .then((data: { restaurants: RecommendedRestaurant[] }) => {
+          setMealPicks((prev) => {
+            if (prev[i] !== undefined) return prev;
+            return { ...prev, [i]: [data.restaurants?.[0] ?? null, data.restaurants?.[1] ?? null] };
+          });
+        })
+        .catch(() => { /* silently ignore pre-fetch failures */ });
+    });
 
     const fetchDay = async (day: number, isFirst: boolean) => {
       const res = await fetch("/api/generate-plan", {
@@ -476,7 +492,7 @@ export function TripPlannerFlow() {
 
       setPlan(assembled);
       setCustomDays(null);
-      fetchAllMealPicks(assembled.days, answers.budget ?? "mid");
+      fetchAllMealPicks(assembled.days, answers.budget ?? "mid", true);
       setTimeout(() => setStage("plan"), 500);
     } catch (err) {
       clearInterval(progressTimerRef.current!);
