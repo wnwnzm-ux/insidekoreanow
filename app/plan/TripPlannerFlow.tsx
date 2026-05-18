@@ -484,6 +484,23 @@ export function TripPlannerFlow() {
     }
   }, [answers, extended, fetchAllMealPicks]);
 
+  const handleSaveCustomPlan = useCallback(async (): Promise<string | null> => {
+    if (!plan) return null;
+    try {
+      const effectiveDays = customDays ?? plan.days;
+      const res = await fetch("/api/save-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: { ...plan, days: effectiveDays }, mealPicks }),
+      });
+      if (!res.ok) return null;
+      const { id } = (await res.json()) as { id: string };
+      return `${window.location.origin}/plan/${id}`;
+    } catch {
+      return null;
+    }
+  }, [plan, customDays, mealPicks]);
+
   // Days used in Step 4: prefer customised version, else fall back to plan
   const activeDays = customDays ?? plan?.days ?? [];
   const setActiveDays = (next: DayPlan[]) => setCustomDays(next);
@@ -580,6 +597,7 @@ export function TripPlannerFlow() {
             days={activeDays}
             setDays={setActiveDays}
             onBack={() => setStage("plan")}
+            onSave={handleSaveCustomPlan}
             mealPicks={mealPicks}
             onRemoveMealPick={handleRemoveMealPick}
             onUpdateMealPick={handleUpdateMealPick}

@@ -222,10 +222,10 @@ export default function Home() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-slate-500 sm:flex-row sm:px-6 lg:px-8">
           <p>© {new Date().getFullYear()} InsideKoreaNow. For international travelers.</p>
           <nav className="flex gap-4" aria-label="Footer">
-            <Link href="#" className="hover:text-slate-800">
+            <Link href="/privacy" className="hover:text-slate-800">
               Privacy
             </Link>
-            <Link href="#" className="hover:text-slate-800">
+            <Link href="/contact" className="hover:text-slate-800">
               Contact
             </Link>
           </nav>

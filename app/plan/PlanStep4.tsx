@@ -147,21 +147,24 @@ function MealRow({ r, slot, activeDay, onRemoveMealPick }: {
   );
 }
 
+type ShareState = "idle" | "saving" | "copied" | "error";
+
 interface Props {
   days: DayPlan[];
   setDays: (days: DayPlan[]) => void;
   onBack: () => void;
+  onSave?: () => Promise<string | null>;
   mealPicks?: Record<number, (RecommendedRestaurant | null)[]>;
   onRemoveMealPick?: (day: number, slot: number) => void;
   onUpdateMealPick?: (day: number, slot: number, r: RecommendedRestaurant) => void;
 }
 
-export function PlanStep4({ days, setDays, onBack, mealPicks, onRemoveMealPick, onUpdateMealPick }: Props) {
+export function PlanStep4({ days, setDays, onBack, onSave, mealPicks, onRemoveMealPick, onUpdateMealPick }: Props) {
   const [activeDay, setActiveDay] = useState(0);
   const [mobileTab, setMobileTab] = useState<"plan" | "map">("plan");
   const [highlightedId, setHighlightedId] = useState<string>("");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [shareState, setShareState] = useState<ShareState>("idle");
 
   const existingNames = new Set(days.flatMap((d) => d.places.map((p) => p.name)));
 
@@ -186,9 +189,21 @@ export function PlanStep4({ days, setDays, onBack, mealPicks, onRemoveMealPick, 
     setDays(next);
   };
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  const handleShare = async () => {
+    if (!onSave || shareState === "saving") return;
+    setShareState("saving");
+    try {
+      const url = await onSave();
+      if (url) {
+        await navigator.clipboard.writeText(url);
+        setShareState("copied");
+      } else {
+        setShareState("error");
+      }
+    } catch {
+      setShareState("error");
+    }
+    setTimeout(() => setShareState("idle"), 3000);
   };
 
   const totalPlaces = days.reduce((s, d) => s + d.places.length, 0);
@@ -210,12 +225,19 @@ export function PlanStep4({ days, setDays, onBack, mealPicks, onRemoveMealPick, 
               ← Plan
             </button>
             <button
-              onClick={handleSave}
-              className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                saved ? "bg-green-500 text-white" : "bg-teal-600 text-white hover:bg-teal-700"
+              onClick={handleShare}
+              disabled={shareState === "saving" || !onSave}
+              className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition disabled:opacity-60 ${
+                shareState === "copied" ? "bg-green-500 text-white" : shareState === "error" ? "bg-red-500 text-white" : "bg-teal-600 text-white hover:bg-teal-700"
               }`}
             >
-              {saved ? "✓ Saved!" : "Save Plan"}
+              {shareState === "saving" && (
+                <svg className="size-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+              )}
+              {shareState === "copied" ? "✓ Link copied!" : shareState === "error" ? "Failed" : shareState === "saving" ? "Saving…" : "Share Plan"}
             </button>
           </div>
         </div>
