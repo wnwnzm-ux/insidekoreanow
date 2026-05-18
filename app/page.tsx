@@ -161,17 +161,17 @@ export default function Home() {
             <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
               <div className="max-w-2xl">
                 <h2 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-                  Latest from the blog
+                  Korea Travel Guides
                 </h2>
                 <p className="mt-3 text-slate-600">
-                  Fresh guides and field notes—updated regularly as Korea’s seasons and scenes shift.
+                  Practical guides written like a local friend—covering transport, food, culture, and everything in between.
                 </p>
               </div>
               <Link
                 href="/blog"
                 className="inline-flex items-center gap-1 text-sm font-semibold text-teal-800 hover:text-teal-900"
               >
-                View all posts
+                Browse all guides
                 <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
