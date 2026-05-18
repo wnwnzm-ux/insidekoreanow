@@ -152,14 +152,22 @@ function MapMarkers({
   );
 }
 
+interface MealPickEntry {
+  id: number;
+  name: string;
+  neighborhood: string | null;
+  maps_url: string | null;
+}
+
 interface Props {
   days: DayPlan[];
   activeDay: number;
   onPinClick?: (placeId: string) => void;
   highlightedPlaceId?: string;
+  meals?: (MealPickEntry | null)[];
 }
 
-export function PlanMap({ days, activeDay, onPinClick, highlightedPlaceId }: Props) {
+export function PlanMap({ days, activeDay, onPinClick, highlightedPlaceId, meals }: Props) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   if (!apiKey) {
@@ -169,6 +177,7 @@ export function PlanMap({ days, activeDay, onPinClick, highlightedPlaceId }: Pro
         activeDay={activeDay}
         onPinClick={onPinClick}
         highlightedPlaceId={highlightedPlaceId}
+        meals={meals}
       />
     );
   }
@@ -191,6 +200,10 @@ export function PlanMap({ days, activeDay, onPinClick, highlightedPlaceId }: Pro
   const activePins =
     activeDay === 0 ? allPins : allPins.filter((p) => p.dayIndex === activeDay - 1);
 
+  const mealMarkers = (meals ?? [])
+    .map((r, i) => r ? { r, label: i === 0 ? "L" : "D" as "L" | "D" } : null)
+    .filter((m): m is { r: MealPickEntry; label: "L" | "D" } => m !== null);
+
   return (
     <div className="relative h-full w-full overflow-hidden rounded-2xl">
       <APIProvider apiKey={apiKey}>
@@ -208,6 +221,20 @@ export function PlanMap({ days, activeDay, onPinClick, highlightedPlaceId }: Pro
             highlightedPlaceId={highlightedPlaceId}
             onPinClick={onPinClick}
           />
+          {mealMarkers.map(({ r, label }) => {
+            const pos = getLatLng(r.neighborhood ?? "Seoul");
+            const bg = label === "L" ? "#f59e0b" : "#ea580c";
+            return (
+              <AdvancedMarker key={`meal-${r.id}-${label}`} position={pos}>
+                <div
+                  style={{ backgroundColor: bg, boxShadow: "0 1px 4px rgba(0,0,0,0.3)" }}
+                  className="flex size-8 cursor-pointer items-center justify-center rounded-full font-bold text-[11px] text-white ring-2 ring-white"
+                >
+                  {label}
+                </div>
+              </AdvancedMarker>
+            );
+          })}
         </Map>
       </APIProvider>
 
