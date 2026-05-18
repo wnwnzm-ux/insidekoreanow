@@ -19,9 +19,9 @@ export function BlogIndexClient() {
     <div className="bg-zinc-50 pb-20 pt-10 sm:pt-14">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Blog</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Korea Travel Guides</h1>
           <p className="mt-3 text-lg leading-relaxed text-slate-600">
-            Guides and notes for visiting or living in Korea—pick a topic to narrow the list.
+            Practical, insider-written guides for visiting or living in Korea—pick a topic to get started.
           </p>
         </div>
 

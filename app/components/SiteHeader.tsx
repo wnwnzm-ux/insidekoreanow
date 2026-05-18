@@ -24,7 +24,7 @@ export function SiteHeader() {
             href="/blog"
             className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-zinc-100 hover:text-slate-900"
           >
-            Blog
+            Guides
           </Link>
         </nav>
 
@@ -45,7 +45,7 @@ export function SiteHeader() {
                 Plan a trip
               </Link>
               <Link href="/blog" className={mobileNavClass}>
-                Blog
+                Guides
               </Link>
               <Link href="#" className={mobileNavClass}>
                 Sign in
