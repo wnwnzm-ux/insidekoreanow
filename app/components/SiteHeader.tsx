@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { AuthButton } from "./AuthButton";
 
 const mobileNavClass =
   "block px-4 py-2.5 text-sm text-slate-700 hover:bg-zinc-50";
@@ -29,12 +31,13 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex flex-1 items-center justify-end gap-2 md:flex-none">
-          <Link
-            href="#"
-            className="hidden rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-900 sm:inline"
-          >
-            Sign in
-          </Link>
+          <div className="hidden sm:flex items-center">
+            <Suspense fallback={
+              <span className="rounded-lg px-3 py-2 text-sm font-medium text-slate-400">Sign in</span>
+            }>
+              <AuthButton />
+            </Suspense>
+          </div>
 
           <details className="relative md:hidden">
             <summary className="cursor-pointer list-none rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm [&::-webkit-details-marker]:hidden">
@@ -47,9 +50,11 @@ export function SiteHeader() {
               <Link href="/blog" className={mobileNavClass}>
                 Guides
               </Link>
-              <Link href="#" className={mobileNavClass}>
-                Sign in
-              </Link>
+              <Suspense fallback={
+                <Link href="/login" className={mobileNavClass}>Sign in</Link>
+              }>
+                <AuthButton mobile />
+              </Suspense>
             </div>
           </details>
         </div>
