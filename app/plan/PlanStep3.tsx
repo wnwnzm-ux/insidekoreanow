@@ -223,6 +223,7 @@ function DaySection({ day, dayIndex, meals }: {
 
 export function PlanStep3({ plan, onCustomize, mealPicks }: Props) {
   const [shareState, setShareState] = useState<ShareState>("idle");
+  const [activeDay, setActiveDay] = useState(0);
 
   async function handleShare() {
     setShareState("saving");
@@ -262,25 +263,36 @@ export function PlanStep3({ plan, onCustomize, mealPicks }: Props) {
         </div>
       </div>
 
-      {/* All days — scrolling list */}
-      <div>
-        {plan.days.map((day, i) => (
-          <div key={day.day}>
-            {i > 0 && (
-              <div className="my-8 flex items-center gap-3">
-                <div className="h-px flex-1 bg-slate-200" />
-                <span className="text-xs font-semibold uppercase tracking-widest text-slate-300">Next Day</span>
-                <div className="h-px flex-1 bg-slate-200" />
-              </div>
-            )}
-            <DaySection
-              day={day}
-              dayIndex={i}
-              meals={mealPicks?.[i]}
-            />
-          </div>
-        ))}
+      {/* Day tabs */}
+      <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
+        {plan.days.map((day, i) => {
+          const mealsReady = mealPicks?.[i] !== undefined;
+          return (
+            <button
+              key={day.day}
+              onClick={() => setActiveDay(i)}
+              className={`flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
+                activeDay === i
+                  ? "border-teal-600 bg-teal-600 text-white shadow-sm"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-teal-300 hover:bg-teal-50"
+              }`}
+            >
+              <span>Day {day.day}</span>
+              {!mealsReady && (
+                <span className="size-1.5 animate-pulse rounded-full bg-current opacity-60" />
+              )}
+            </button>
+          );
+        })}
       </div>
+
+      {/* Active day content */}
+      <DaySection
+        key={activeDay}
+        day={plan.days[activeDay]}
+        dayIndex={activeDay}
+        meals={mealPicks?.[activeDay]}
+      />
 
       {/* CTA */}
       <div className="mt-8 rounded-2xl border-2 border-dashed border-teal-200 bg-teal-50 p-5 text-center">
