@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { BlogCardThumbnail } from "@/app/components/BlogCardThumbnail";
 import {
   BLOG_CATEGORY_FILTERS,
@@ -12,7 +13,13 @@ import {
 import { decodeHtmlEntities } from "@/lib/html";
 
 export function BlogIndexClient() {
-  const [active, setActive] = useState<BlogFilterId>("all");
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get("category") as BlogFilterId | null;
+  const initialCategory =
+    categoryParam && BLOG_CATEGORY_FILTERS.some((f) => f.id === categoryParam)
+      ? categoryParam
+      : "all";
+  const [active, setActive] = useState<BlogFilterId>(initialCategory);
   const posts = useMemo(() => filterBlogPosts(active), [active]);
 
   return (

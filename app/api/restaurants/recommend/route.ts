@@ -3,8 +3,7 @@ import { getSupabase } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 
-// Planner day-index (0-based, mod 10) → Seoul districts
-// Mirrors the DAY_AREAS rotation in app/api/generate-plan/route.ts
+// Planner day-index (0-based, mod 10) → Seoul districts (fallback when no neighborhoods passed)
 const DISTRICT_BY_DAY: string[][] = [
   ["Jongrogu", "Jongrugu"],       // 0 Jongno / Bukchon / historic palace
   ["Mapogu"],                      // 1 Hongdae / Mapo / youthful west
@@ -17,6 +16,46 @@ const DISTRICT_BY_DAY: string[][] = [
   ["Dongdaemungu"],               // 8 Dongdaemun / night fashion
   ["Mapogu"],                      // 9 Mangwon / Hapjeong / local café
 ];
+
+// Common AI-generated neighborhood names → DB district values
+const NEIGHBORHOOD_TO_DISTRICT: Record<string, string[]> = {
+  jongno: ["Jongrogu", "Jongrugu"],
+  bukchon: ["Jongrogu", "Jongrugu"],
+  insadong: ["Jongrogu"],
+  ikseon: ["Jongrogu"],
+  changdeok: ["Jongrogu"],
+  gyeongbokgung: ["Jongrogu"],
+  hongdae: ["Mapogu"],
+  mapo: ["Mapogu"],
+  mangwon: ["Mapogu"],
+  hapjeong: ["Mapogu"],
+  sangsu: ["Mapogu"],
+  gangnam: ["Gangnamgu"],
+  apgujeong: ["Gangnamgu"],
+  cheongdam: ["Gangnamgu"],
+  sinsa: ["Seochogu"],
+  garosu: ["Seochogu"],
+  itaewon: ["Yongsangu"],
+  namsan: ["Yongsangu"],
+  hannam: ["Yongsangu"],
+  yongsan: ["Yongsangu"],
+  seongsu: ["Seongdonggu"],
+  euljiro: ["Junggu"],
+  myeongdong: ["Junggu"],
+  namdaemun: ["Junggu"],
+  dongdaemun: ["Dongdaemungu"],
+  yeouido: ["Yeongdeungpogu"],
+  noryangjin: ["Yeongdeungpogu"],
+  jamsil: ["Songpagu"],
+  olympic: ["Songpagu"],
+};
+
+function neighborhoodsToDistricts(neighborhoods: string[]): string[] {
+  const districts = neighborhoods.flatMap(
+    (n) => NEIGHBORHOOD_TO_DISTRICT[n.toLowerCase().trim()] ?? []
+  );
+  return districts.length > 0 ? [...new Set(districts)] : [];
+}
 
 // travel_theme values ranked by curation quality (best first)
 const QUALITY_RANK: Record<string, number> = {
@@ -64,11 +103,15 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(10, parseInt(searchParams.get("limit") ?? "3", 10));
   const budget = searchParams.get("budget") ?? "mid"; // budget | mid | luxury
   const purpose = searchParams.get("purpose") ?? "";
+  const neighborhoodsParam = searchParams.get("neighborhoods") ?? "";
 
   const supabase = getSupabase();
 
   const dayIndex = (day - 1) % DISTRICT_BY_DAY.length;
-  const districts = DISTRICT_BY_DAY[dayIndex];
+  const mappedDistricts = neighborhoodsParam
+    ? neighborhoodsToDistricts(neighborhoodsParam.split(","))
+    : [];
+  const districts = mappedDistricts.length > 0 ? mappedDistricts : DISTRICT_BY_DAY[dayIndex];
 
   const SELECT_COLS =
     "id, name, korean_name, district, neighborhood, food_type, travel_theme, description, why_visit, recommended_menu, maps_url, foreigner_friendly, reservation_needed";

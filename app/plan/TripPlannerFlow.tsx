@@ -337,9 +337,11 @@ export function TripPlannerFlow() {
   const [genProgress, setGenProgress] = useState(0);
   const [mealPicks, setMealPicks] = useState<Record<number, (RecommendedRestaurant | null)[]>>({});
 
-  const fetchAllMealPicks = useCallback((planDaysCount: number, budget: string) => {
-    Array.from({ length: planDaysCount }, (_, i) => i).forEach((dayIndex) => {
+  const fetchAllMealPicks = useCallback((planDays: DayPlan[], budget: string) => {
+    planDays.forEach((day, dayIndex) => {
+      const neighborhoods = [...new Set(day.places.map((p) => p.neighborhood))].join(",");
       const params = new URLSearchParams({ city: "Seoul", day: String(dayIndex + 1), budget, limit: "2" });
+      if (neighborhoods) params.set("neighborhoods", neighborhoods);
       fetch(`/api/restaurants/recommend?${params}`)
         .then((r) => r.json())
         .then((data: { restaurants: RecommendedRestaurant[] }) => {
@@ -383,7 +385,7 @@ export function TripPlannerFlow() {
     mountedRef.current = true;
     const saved = loadSaved();
     if (saved?.plan) {
-      fetchAllMealPicks(saved.plan.days.length, saved.answers?.budget ?? "mid");
+      fetchAllMealPicks(saved.plan.days, saved.answers?.budget ?? "mid");
     }
   }, [fetchAllMealPicks]);
 
@@ -474,7 +476,7 @@ export function TripPlannerFlow() {
 
       setPlan(assembled);
       setCustomDays(null);
-      fetchAllMealPicks(totalDays, answers.budget ?? "mid");
+      fetchAllMealPicks(assembled.days, answers.budget ?? "mid");
       setTimeout(() => setStage("plan"), 500);
     } catch (err) {
       clearInterval(progressTimerRef.current!);
