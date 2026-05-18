@@ -18,47 +18,63 @@ function MealCard({ r, label }: { r: RecommendedRestaurant; label: "Lunch" | "Di
   const topTheme = (r.travel_theme ?? []).find((t) => t in THEME_BADGE);
   const badge = topTheme ? THEME_BADGE[topTheme] : null;
   const isLunch = label === "Lunch";
+  const description = r.why_visit ?? r.description;
 
   return (
     <div className="relative rounded-2xl border border-orange-100 bg-orange-50/60 shadow-sm">
       <div className={`absolute -left-3 top-4 flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-bold text-white shadow-sm ${isLunch ? "bg-amber-500" : "bg-orange-600"}`}>
         {label}
       </div>
-      <div className="flex items-start justify-between gap-3 p-4 pl-6">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xl leading-none">🍽️</span>
-            <h3 className="font-bold text-slate-800">{r.name}</h3>
-            {r.korean_name && <span className="text-xs text-slate-400">{r.korean_name}</span>}
+      <div className="p-4 pl-6">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xl leading-none">🍽️</span>
+              <h3 className="font-bold text-slate-800">{r.name}</h3>
+              {r.korean_name && <span className="text-xs text-slate-400">{r.korean_name}</span>}
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              {badge && topTheme && (
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${badge.bg} ${badge.text}`}>
+                  {topTheme}
+                </span>
+              )}
+              {r.district && <span className="text-xs text-slate-500">📍 {r.district}</span>}
+            </div>
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            {badge && topTheme && (
-              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${badge.bg} ${badge.text}`}>
-                {topTheme}
-              </span>
-            )}
-            {r.district && <span className="text-xs text-slate-500">📍 {r.district}</span>}
-          </div>
-          {dish && (
-            <p className="mt-1 text-xs text-slate-600">
-              <span className="font-medium">Try:</span> {dish.name}
-              {dish.korean_name && <span className="text-slate-400"> ({dish.korean_name})</span>}
-            </p>
+          {r.maps_url && (
+            <a
+              href={r.maps_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 flex items-center gap-1 rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1.5 text-[11px] font-semibold text-teal-700 hover:bg-teal-100 transition-colors"
+            >
+              <svg className="size-3" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+              </svg>
+              Map
+            </a>
           )}
         </div>
-        {r.maps_url && (
-          <a
-            href={r.maps_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 flex items-center gap-1 rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1.5 text-[11px] font-semibold text-teal-700 hover:bg-teal-100 transition-colors"
-          >
-            <svg className="size-3" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-            </svg>
-            Map
-          </a>
+        {description && (
+          <div className="mt-3 rounded-xl bg-orange-100/60 p-3">
+            <p className="text-xs leading-relaxed text-orange-900">{description}</p>
+          </div>
         )}
+        {dish && (
+          <p className="mt-2 text-xs text-slate-600">
+            <span className="font-semibold">Try:</span> {dish.name}
+            {dish.korean_name && <span className="text-slate-400"> ({dish.korean_name})</span>}
+          </p>
+        )}
+        <div className="mt-2 flex flex-wrap gap-2">
+          {r.foreigner_friendly && (
+            <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-medium text-teal-700">Foreigner friendly</span>
+          )}
+          {r.reservation_needed && (
+            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">Reservation needed</span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -330,6 +346,7 @@ export function PlanStep3({ plan, onCustomize, mealPicks }: Props) {
           <PlanMap
             days={[plan.days[activeDay]]}
             activeDay={1}
+            meals={mealPicks?.[activeDay]}
           />
         </div>
       )}
