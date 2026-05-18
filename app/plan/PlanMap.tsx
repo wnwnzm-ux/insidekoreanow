@@ -92,17 +92,16 @@ function RouteLines({ pins }: { pins: PinData[] }) {
       (byDay[p.dayIndex] = byDay[p.dayIndex] ?? []).push(p);
     });
 
-    Object.entries(byDay).forEach(([di, dayPins]) => {
-      const color = DAY_COLORS[Number(di) % DAY_COLORS.length];
+    Object.entries(byDay).forEach(([, dayPins]) => {
       for (let i = 0; i < dayPins.length - 1; i++) {
         const line = new mapsLib.Polyline({
           path: [
             { lat: dayPins[i].lat, lng: dayPins[i].lng },
             { lat: dayPins[i + 1].lat, lng: dayPins[i + 1].lng },
           ],
-          strokeColor: color,
-          strokeOpacity: 0.55,
-          strokeWeight: 2.5,
+          strokeColor: "#ef4444",
+          strokeOpacity: 0.9,
+          strokeWeight: 4,
           map,
         });
         linesRef.current.push(line);

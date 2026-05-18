@@ -179,10 +179,10 @@ export function MockMap({ days, activeDay, onPinClick, highlightedPlaceId }: Pro
                 y1={pin.y}
                 x2={next.x}
                 y2={next.y}
-                stroke={pin.color}
-                strokeWidth="1.5"
-                strokeDasharray="4 3"
-                opacity="0.5"
+                stroke="#ef4444"
+                strokeWidth="3"
+                strokeLinecap="round"
+                opacity="0.85"
               />
             );
           })}
