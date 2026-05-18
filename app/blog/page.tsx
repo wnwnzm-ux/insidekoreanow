@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { BlogIndexClient } from "./blog-index-client";
 import { SITE_NAME } from "@/lib/site";
 
@@ -22,5 +23,9 @@ export const metadata: Metadata = {
 };
 
 export default function BlogPage() {
-  return <BlogIndexClient />;
+  return (
+    <Suspense>
+      <BlogIndexClient />
+    </Suspense>
+  );
 }

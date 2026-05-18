@@ -28,7 +28,7 @@ const categories = [
   {
     title: "K-Culture",
     description: "K-pop, K-drama, Festivals, Shows",
-    href: "/blog",
+    href: "/blog?category=k-culture",
     icon: (
       <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path
@@ -42,7 +42,7 @@ const categories = [
   {
     title: "K-Food",
     description: "Food, Restaurants, Street food, Cafes",
-    href: "/blog",
+    href: "/blog?category=k-food",
     icon: (
       <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path
@@ -56,7 +56,7 @@ const categories = [
   {
     title: "Living in Korea",
     description: "Life tips, Visa, Costs, Expat life",
-    href: "/blog",
+    href: "/blog?category=living",
     icon: (
       <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path
@@ -70,7 +70,7 @@ const categories = [
   {
     title: "Travel",
     description: "Destinations, Sightseeing, Transport, Hotels",
-    href: "/blog",
+    href: "/blog?category=travel",
     icon: (
       <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path
