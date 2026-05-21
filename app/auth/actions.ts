@@ -5,10 +5,13 @@ import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase-server";
 
 async function getSiteUrl() {
-  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  // Prefer explicit env var (set in Vercel → Settings → Environment Variables)
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+  // Fallback: derive from request headers (works on Vercel with custom domain)
   const h = await headers();
-  const host = h.get("host") ?? "localhost:3000";
-  const proto = host.startsWith("localhost") ? "http" : "https";
+  const forwardedHost = h.get("x-forwarded-host");
+  const host = forwardedHost ?? h.get("host") ?? "localhost:3000";
+  const proto = host.includes("localhost") ? "http" : "https";
   return `${proto}://${host}`;
 }
 
