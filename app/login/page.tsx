@@ -79,12 +79,12 @@ export default async function LoginPage({
                   type="submit"
                   className="w-full rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 active:scale-[0.98]"
                 >
-                  Send magic link
+                  Sign in with email
                 </button>
               </form>
 
               <p className="mt-4 text-center text-xs text-slate-400">
-                No password needed — we&apos;ll email you a sign-in link.
+                We&apos;ll send a one-click sign-in link — no password needed.
               </p>
             </>
           )}
