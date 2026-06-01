@@ -1,18 +1,26 @@
-import Link from "next/link";
-import { getSupabaseServer } from "@/lib/supabase-server";
-import { signOut } from "@/app/auth/actions";
+"use client";
 
-export async function AuthButton({ mobile = false }: { mobile?: boolean }) {
-  const supabase = await getSupabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
+
+export function AuthButton({ mobile = false }: { mobile?: boolean }) {
+  const [email, setEmail] = useState<string | null>(undefined as unknown as null);
+
+  useEffect(() => {
+    getSupabaseBrowser()
+      .auth.getUser()
+      .then(({ data }) => setEmail(data.user?.email ?? null));
+  }, []);
 
   const linkClass = mobile
     ? "block px-4 py-2.5 text-sm text-slate-700 hover:bg-zinc-50"
     : "rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-900";
 
-  if (!user) {
+  // Still loading
+  if (email === undefined) return null;
+
+  if (!email) {
     return (
       <Link href="/login" className={linkClass}>
         Sign in
@@ -20,8 +28,12 @@ export async function AuthButton({ mobile = false }: { mobile?: boolean }) {
     );
   }
 
-  const email = user.email ?? "";
   const initial = email.charAt(0).toUpperCase();
+
+  async function handleSignOut() {
+    await getSupabaseBrowser().auth.signOut();
+    window.location.href = "/";
+  }
 
   return (
     <div className={mobile ? "border-t border-zinc-100 pt-1 mt-1" : "flex items-center gap-2"}>
@@ -33,14 +45,12 @@ export async function AuthButton({ mobile = false }: { mobile?: boolean }) {
       {mobile && (
         <span className="block px-4 py-2 text-xs text-slate-400">{email}</span>
       )}
-      <form action={signOut}>
-        <button
-          type="submit"
-          className={mobile ? `${linkClass} w-full text-left` : "rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"}
-        >
-          Sign out
-        </button>
-      </form>
+      <button
+        onClick={handleSignOut}
+        className={mobile ? `${linkClass} w-full text-left` : "rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"}
+      >
+        Sign out
+      </button>
     </div>
   );
 }
