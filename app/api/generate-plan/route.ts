@@ -5,7 +5,7 @@ import type { TripAnswers, ExtendedAnswers } from "@/app/plan/types";
 export const maxDuration = 60;
 
 // Cached system prompt — same for all day calls so caching kicks in after day 1
-const SYSTEM_PROMPT = `You are a Korea travel expert and local insider who has lived in Seoul for 10 years.
+const SYSTEM_PROMPT = `You are a Korea travel expert and local insider who has lived in Korea for 10 years, deeply familiar with Seoul, Busan, Jeju, and Gyeongju.
 
 OUTPUT FORMAT: Return ONLY valid minified JSON. No markdown, no explanation, no whitespace between tokens. Single line.
 
@@ -37,9 +37,30 @@ SEOUL AREAS:
 - Bukchon: hanok alleys, morning photography, Onion Anguk
 - Mangwon: Fritz Coffee, local market, Han River 10min
 - Dongdaemun: DDP, night fashion market
-- Insadong: pottery, antiques, Ssamziegil, tea houses`;
+- Insadong: pottery, antiques, Ssamziegil, tea houses
 
-const DAY_AREAS = [
+BUSAN AREAS:
+- Haeundae: famous beach, Dongbaek Island, upscale hotels, APEC park
+- Gamcheon: pastel hillside art village, winding alleys, murals, Little Prince statue
+- Jagalchi: Korea's largest seafood market, raw fish, haenyeo stalls
+- Gwangalli: Gwangan Bridge night views, beach bars, local vibe
+- Seomyeon: Busan's commercial heart, underground shopping, food alleys
+- Nampo-dong / BIFF Square: Gukje Market, street food, cinema history
+- Beomeosa Temple: ancient mountain temple, Geumjeong Fortress hiking
+- Haedong Yonggungsa: dramatic seaside temple on coastal cliffs
+- Centum City: Shinsegae (world's largest dept store), culture complex
+- Taejongdae: dramatic cliff park, lighthouse, sea views
+
+JEJU AREAS:
+- Jeju City / Dongmun Market: traditional market, black pork, hallabong
+- Hallasan: Korea's highest peak, volcanic crater hike
+- Seongsan Ilchulbong: UNESCO sunrise peak, village below
+- Hyeopjae / Hamdeok Beach: turquoise water, lava rock coastline
+- Olle Trail: coastal walking routes, village paths
+- Manjanggul Cave: UNESCO lava tube, underground walk
+- Jungmun: resort area, Cheonjeyeon Falls, Teddy Bear Museum`;
+
+const SEOUL_AREAS = [
   "Jongno / Bukchon / historic palace district",
   "Hongdae / Mapo / youthful west Seoul",
   "Gangnam / Sinsa / upscale south of river",
@@ -51,6 +72,55 @@ const DAY_AREAS = [
   "Dongdaemun / Wangsimni / night fashion district",
   "Mangwon / Hapjeong / local café culture west Seoul",
 ];
+
+const BUSAN_AREAS = [
+  "Gamcheon Culture Village / pastel hillside art village",
+  "Jagalchi Fish Market / Nampo-dong / Korea's largest seafood market",
+  "Haeundae Beach / Dongbaek Island / Busan's most famous coast",
+  "Gwangalli Beach / Gwangan Bridge night views",
+  "Seomyeon / Bujeon-dong / Busan's commercial heart",
+  "Beomeosa Temple / Geumjeong Mountain / ancient mountain temple",
+  "BIFF Square / Gukje Market / street food and cinema history",
+  "Haedong Yonggungsa / dramatic seaside temple on coastal cliffs",
+  "Centum City / Shinsegae / world's largest department store",
+  "Taejongdae / cliff park / lighthouse and sea views",
+];
+
+const JEJU_AREAS = [
+  "Jeju City / Dongmun Market / traditional market and black pork",
+  "Seongsan Ilchulbong / UNESCO sunrise peak",
+  "Hallasan / Korea's highest peak volcanic crater hike",
+  "Hyeopjae Beach / turquoise water and lava rock coast",
+  "Manjanggul Cave / UNESCO lava tube underground walk",
+  "Jungmun / Cheonjeyeon Falls / resort area",
+  "Olle Trail coastal walking routes and village paths",
+];
+
+function detectCities(mustVisit = "", accommodation = ""): string[] {
+  const text = (mustVisit + " " + accommodation).toLowerCase();
+  const cities: string[] = [];
+  if (/busan|부산/.test(text)) cities.push("busan");
+  if (/jeju|제주/.test(text)) cities.push("jeju");
+  if (!cities.length || /seoul|서울/.test(text)) cities.push("seoul");
+  return cities;
+}
+
+function buildDayAreas(cities: string[], totalDays: number): string[] {
+  if (cities.length === 1) {
+    const map: Record<string, string[]> = { seoul: SEOUL_AREAS, busan: BUSAN_AREAS, jeju: JEJU_AREAS };
+    return map[cities[0]] ?? SEOUL_AREAS;
+  }
+
+  // Multi-city: split days proportionally
+  const areas: string[] = [];
+  const perCity = Math.ceil(totalDays / cities.length);
+  for (const city of cities) {
+    const map: Record<string, string[]> = { seoul: SEOUL_AREAS, busan: BUSAN_AREAS, jeju: JEJU_AREAS };
+    const pool = map[city] ?? SEOUL_AREAS;
+    for (let i = 0; i < perCity; i++) areas.push(pool[i % pool.length]);
+  }
+  return areas;
+}
 
 const PURPOSE_LABELS: Record<string, string> = {
   kpop: "K-pop fan (idol agencies, fan cafes, merch)",
@@ -91,7 +161,16 @@ export async function POST(request: NextRequest) {
     };
     const { answers, extended, day, totalDays, isFirst } = body;
 
-    const area = DAY_AREAS[(day - 1) % DAY_AREAS.length];
+    const cities = detectCities(answers.mustVisit, extended?.accommodation);
+    const dayAreas = buildDayAreas(cities, totalDays);
+    const area = dayAreas[(day - 1) % dayAreas.length];
+    const cityContext = cities.includes("busan") && !cities.includes("seoul")
+      ? "Busan, South Korea"
+      : cities.includes("jeju")
+      ? "Jeju Island, South Korea"
+      : cities.length > 1
+      ? cities.map(c => c.charAt(0).toUpperCase() + c.slice(1)).join(" + ") + ", South Korea"
+      : "Seoul, South Korea";
     const extras = extended
       ? [
           extended.dietary?.length ? `dietary: ${extended.dietary.join(", ")}` : null,
@@ -104,10 +183,10 @@ export async function POST(request: NextRequest) {
       : "";
 
     const userMessage = isFirst
-      ? `Day 1 of ${totalDays}. Area focus: ${area}.
+      ? `Day 1 of ${totalDays}. Destination: ${cityContext}. Area focus: ${area}.
 Traveller: ${PURPOSE_LABELS[answers.purpose] ?? answers.purpose}, ${STYLE_LABELS[answers.style] ?? answers.style}, ${COMPANION_LABELS[answers.companion] ?? answers.companion}, ${BUDGET_LABELS[answers.budget] ?? answers.budget}.${answers.mustVisit ? ` Must-visit: ${answers.mustVisit}.` : ""}${extras ? ` ${extras}.` : ""}
 Include plan header (title, overview, expertNote) + Day 1 with 3 places.`
-      : `Day ${day} of ${totalDays}. Area focus: ${area}.
+      : `Day ${day} of ${totalDays}. Destination: ${cityContext}. Area focus: ${area}.
 Traveller: ${PURPOSE_LABELS[answers.purpose] ?? answers.purpose}, ${STYLE_LABELS[answers.style] ?? answers.style}, ${COMPANION_LABELS[answers.companion] ?? answers.companion}, ${BUDGET_LABELS[answers.budget] ?? answers.budget}.${answers.mustVisit ? ` Must-visit: ${answers.mustVisit}.` : ""}
 Generate Day ${day} with 3 places. Different area from previous days.`;
 
