@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { BLOG_POSTS, getCategoryLabel } from "@/lib/blog-posts";
 import { decodeHtmlEntities } from "@/lib/html";
 import { SITE_NAME } from "@/lib/site";
+import { PostViewCounter, CommentsSection } from "./PostInteractions";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -103,6 +104,8 @@ export default async function BlogPostPage({ params }: Props) {
                 </span>
               </>
             ) : null}
+            <span aria-hidden>·</span>
+            <PostViewCounter slug={post.id} />
           </div>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">{title}</h1>
           {excerpt ? <p className="mt-4 text-lg leading-relaxed text-slate-600">{excerpt}</p> : null}
@@ -135,6 +138,7 @@ export default async function BlogPostPage({ params }: Props) {
             </div>
           </div>
         </div>
+        <CommentsSection slug={post.id} />
       </div>
     </article>
   );
