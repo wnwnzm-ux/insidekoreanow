@@ -13,23 +13,14 @@ export function PostViewCounter({ slug }: { slug: string }) {
     if (ran.current) return;
     ran.current = true;
 
-    // Only count once per browser session per post
     const key = `viewed:${slug}`;
-    const method = sessionStorage.getItem(key) ? "GET" : "POST";
+    const alreadySeen = sessionStorage.getItem(key);
     sessionStorage.setItem(key, "1");
 
-    const url = `/api/blog/views/${slug}`;
-    if (method === "POST") {
-      fetch(url, { method: "POST" })
-        .then((r) => r.json())
-        .then((d) => setCount(d.count))
-        .catch(() => null);
-    } else {
-      fetch(url)
-        .then((r) => r.json())
-        .then((d) => setCount(d.count))
-        .catch(() => null);
-    }
+    fetch(`/api/blog/views/${slug}`, { method: alreadySeen ? "GET" : "POST" })
+      .then((r) => r.json())
+      .then((d) => setCount(typeof d.count === "number" ? d.count : null))
+      .catch(() => null);
   }, [slug]);
 
   if (count === null) return null;
@@ -49,14 +40,10 @@ export function PostViewCounter({ slug }: { slug: string }) {
 
 interface Comment {
   id: string;
-  user_email: string;
+  display_name: string;
+  user_id: string | null;
   content: string;
   created_at: string;
-}
-
-interface SupabaseUser {
-  id: string;
-  email?: string;
 }
 
 function formatDate(iso: string) {
@@ -67,26 +54,39 @@ function formatDate(iso: string) {
   });
 }
 
-function avatar(email: string) {
-  return email.slice(0, 2).toUpperCase();
+function avatarInitials(name: string) {
+  return name.trim().slice(0, 2).toUpperCase() || "AN";
+}
+
+async function fetchComments(slug: string): Promise<Comment[]> {
+  const { data } = await getSupabaseBrowser()
+    .from("comments")
+    .select("id, display_name, user_id, content, created_at")
+    .eq("post_slug", slug)
+    .order("created_at", { ascending: true });
+  return (data as Comment[]) ?? [];
 }
 
 export function CommentsSection({ slug }: { slug: string }) {
   const [comments, setComments] = useState<Comment[]>([]);
-  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [name, setName] = useState("");
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const sb = getSupabaseBrowser();
-    sb.auth.getUser().then(({ data }) => setUser(data.user ?? null));
-
-    sb.from("comments")
-      .select("id, user_email, content, created_at")
-      .eq("post_slug", slug)
-      .order("created_at", { ascending: true })
-      .then(({ data }) => { if (data) setComments(data as Comment[]); });
+    getSupabaseBrowser()
+      .auth.getUser()
+      .then(({ data }) => {
+        if (data.user) {
+          setUserId(data.user.id);
+          setUserEmail(data.user.email ?? null);
+          setName(data.user.email?.split("@")[0] ?? "");
+        }
+      });
+    fetchComments(slug).then(setComments);
   }, [slug]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -95,14 +95,13 @@ export function CommentsSection({ slug }: { slug: string }) {
     setSubmitting(true);
     setError("");
 
+    const displayName = name.trim() || "Anonymous";
     const sb = getSupabaseBrowser();
-    const { data: { user: u } } = await sb.auth.getUser();
-    if (!u) { setError("Please sign in to comment."); setSubmitting(false); return; }
 
     const { error: err } = await sb.from("comments").insert({
       post_slug: slug,
-      user_id: u.id,
-      user_email: u.email ?? "anonymous",
+      user_id: userId ?? null,
+      display_name: displayName,
       content: text.trim(),
     });
 
@@ -110,20 +109,13 @@ export function CommentsSection({ slug }: { slug: string }) {
       setError("Couldn't post the comment. Please try again.");
     } else {
       setText("");
-      const sb2 = getSupabaseBrowser();
-      const { data } = await sb2
-        .from("comments")
-        .select("id, user_email, content, created_at")
-        .eq("post_slug", slug)
-        .order("created_at", { ascending: true });
-      if (data) setComments(data as Comment[]);
+      setComments(await fetchComments(slug));
     }
     setSubmitting(false);
   }
 
   async function handleDelete(id: string) {
-    const sb = getSupabaseBrowser();
-    await sb.from("comments").delete().eq("id", id);
+    await getSupabaseBrowser().from("comments").delete().eq("id", id);
     setComments((prev) => prev.filter((c) => c.id !== id));
   }
 
@@ -146,18 +138,17 @@ export function CommentsSection({ slug }: { slug: string }) {
           {comments.map((c) => (
             <li key={c.id} className="flex gap-3">
               <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-teal-100 text-xs font-semibold text-teal-800">
-                {avatar(c.user_email)}
+                {avatarInitials(c.display_name)}
               </div>
               <div className="flex-1 rounded-xl bg-zinc-50 px-4 py-3 text-sm">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium text-slate-700">{c.user_email}</span>
+                  <span className="font-medium text-slate-700">{c.display_name}</span>
                   <div className="flex items-center gap-2">
                     <time className="text-xs text-slate-400">{formatDate(c.created_at)}</time>
-                    {user?.email === c.user_email && (
+                    {userId && c.user_id === userId && (
                       <button
                         onClick={() => handleDelete(c.id)}
                         className="text-xs text-red-400 hover:text-red-600"
-                        aria-label="Delete comment"
                       >
                         Delete
                       </button>
@@ -171,38 +162,36 @@ export function CommentsSection({ slug }: { slug: string }) {
         </ul>
       )}
 
-      {/* Comment form */}
-      <div className="mt-8">
-        {user ? (
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <p className="text-sm text-slate-500">
-              Commenting as <span className="font-medium text-slate-700">{user.email}</span>
-            </p>
-            {error && (
-              <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
-            )}
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Share your thoughts..."
-              rows={3}
-              className="w-full resize-none rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
-            />
-            <button
-              type="submit"
-              disabled={submitting || !text.trim()}
-              className="rounded-xl bg-teal-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:opacity-50"
-            >
-              {submitting ? "Posting…" : "Post comment"}
-            </button>
-          </form>
-        ) : (
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-4 text-sm text-slate-500">
-            <a href="/login" className="font-semibold text-teal-700 hover:underline">Sign in</a>{" "}
-            to leave a comment.
-          </div>
+      {/* Comment form — open to everyone */}
+      <form onSubmit={handleSubmit} className="mt-8 space-y-3">
+        {error && (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
         )}
-      </div>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Your name (optional)"
+          maxLength={50}
+          disabled={!!userEmail}
+          className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 disabled:bg-zinc-50 disabled:text-slate-500"
+        />
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Share your thoughts..."
+          rows={3}
+          required
+          className="w-full resize-none rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+        />
+        <button
+          type="submit"
+          disabled={submitting || !text.trim()}
+          className="rounded-xl bg-teal-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:opacity-50"
+        >
+          {submitting ? "Posting…" : "Post comment"}
+        </button>
+      </form>
     </section>
   );
 }
